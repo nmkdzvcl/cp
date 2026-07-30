@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CP Training Hub — Problem Finder & Schedule</title>
+  <meta name="description" content="Competitive Programming Training Hub - Tìm bài tập Codeforces theo rating & tag, quản lý lịch luyện tập hàng ngày.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">CP Hub</span>
+      </div>
+    <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng/tối">🌙</button>
+  </div>
+    <ul class="nav-links">
+      <li>
+        <button class="nav-btn active" data-page="problems" id="nav-problems">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Problem Finder</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-btn" data-page="schedule" id="nav-schedule">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Schedule</span>
+        </button>
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="stats-mini" id="stats-mini">
+        <div class="stat-item">
+          <span class="stat-value" id="total-solved">0</span>
+          <span class="stat-label">Bookmarked</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="today-tasks">0</span>
+          <span class="stat-label">Tasks Today</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Header -->
+  <header class="mobile-header" id="mobile-header">
+    <button class="menu-toggle" id="menu-toggle">☰</button>
+    <span class="mobile-title">⚡ CP Hub</span>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content" id="main-content">
+
+    <!-- ===================== PROBLEM FINDER PAGE ===================== -->
+    <section class="page active" id="problems-page">
+      <div class="page-header">
+        <h1>Problem Finder</h1>
+        <p class="page-subtitle">Tìm bài tập Codeforces theo rating, chủ đề và độ khó</p>
+      </div>
+
+      <!-- Solved Stats Bar -->
+      <div class="solved-stats-bar" id="solved-stats-bar">
+        <div class="solved-stat">
+          <span class="solved-stat-icon">✅</span>
+          <span class="solved-stat-value" id="solved-total">0</span>
+          <span class="solved-stat-label">Đã giải</span>
+        </div>
+        <div class="solved-stat">
+          <span class="solved-stat-dot" style="background:#00c853"></span>
+          <span class="solved-stat-value" id="solved-easy">0</span>
+          <span class="solved-stat-label">≤1400</span>
+        </div>
+        <div class="solved-stat">
+          <span class="solved-stat-dot" style="background:#2962ff"></span>
+          <span class="solved-stat-value" id="solved-medium">0</span>
+          <span class="solved-stat-label">1500–1900</span>
+        </div>
+        <div class="solved-stat">
+          <span class="solved-stat-dot" style="background:#ff6d00"></span>
+          <span class="solved-stat-value" id="solved-hard">0</span>
+          <span class="solved-stat-label">≥2000</span>
+        </div>
+        <div class="solved-stat-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="clear-solved-btn" title="Reset bộ đếm">↺ Reset</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-panel" id="filters-panel">
+        <div class="filters-row">
+          <div class="filter-group">
+            <label for="rating-min">Rating Min</label>
+            <input type="number" id="rating-min" placeholder="800" min="800" max="3500" step="100">
+          </div>
+          <div class="filter-group">
+            <label for="rating-max">Rating Max</label>
+            <input type="number" id="rating-max" placeholder="3500" min="800" max="3500" step="100">
+          </div>
+          <div class="filter-group filter-group-wide">
+            <label>Chủ đề (Tags)</label>
+            <div class="tags-container" id="tags-container">
+              <!-- Tags injected by JS -->
+            </div>
+          </div>
+        </div>
+        <div class="filters-actions">
+          <button class="btn btn-primary" id="search-btn">
+            <span>🔍</span> Tìm bài
+          </button>
+          <button class="btn btn-accent" id="random-btn">
+            <span>🎲</span> Random
+          </button>
+          <button class="btn btn-ghost" id="clear-filters-btn">
+            <span>✕</span> Xóa filter
+          </button>
+          <div class="results-count" id="results-count"></div>
+        </div>
+      </div>
+
+      <!-- Sort bar -->
+      <div class="sort-bar" id="sort-bar" style="display:none;">
+        <span class="sort-label">Sắp xếp:</span>
+        <button class="sort-btn active" data-sort="rating-asc" id="sort-rating-asc">Rating ↑</button>
+        <button class="sort-btn" data-sort="rating-desc" id="sort-rating-desc">Rating ↓</button>
+        <button class="sort-btn" data-sort="solved-desc" id="sort-solved-desc">Solved ↓</button>
+        <button class="sort-btn" data-sort="id-desc" id="sort-id-desc">Mới nhất</button>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-overlay" id="problems-loading">
+        <div class="spinner"></div>
+        <p>Đang tải dữ liệu từ Codeforces...</p>
+      </div>
+
+      <!-- Results -->
+      <div class="problems-grid" id="problems-grid">
+        <!-- Problem cards injected by JS -->
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:none;">
+        <button class="btn btn-ghost" id="prev-page-btn">← Trước</button>
+        <span class="page-info" id="page-info">1 / 1</span>
+        <button class="btn btn-ghost" id="next-page-btn">Sau →</button>
+      </div>
+
+      <!-- Bookmarks -->
+      <div class="bookmarks-section" id="bookmarks-section">
+        <div class="section-header" id="bookmarks-toggle">
+          <h2>📌 Bookmarked Problems</h2>
+          <button class="btn btn-ghost btn-sm" id="toggle-bookmarks-btn">Hiện/Ẩn</button>
+        </div>
+        <div class="bookmarks-list" id="bookmarks-list" style="display:none;">
+          <!-- Bookmarked problem cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SCHEDULE PAGE ===================== -->
+    <section class="page" id="schedule-page">
+      <div class="page-header">
+        <h1>Schedule Planner</h1>
+        <p class="page-subtitle">Lên lịch luyện tập hàng ngày — tất cả lưu trên trình duyệt của bạn</p>
+      </div>
+
+      <!-- Schedule Controls -->
+      <div class="schedule-controls">
+        <div class="week-nav">
+          <button class="btn btn-ghost" id="prev-week-btn">◀ Tuần trước</button>
+          <button class="btn btn-ghost btn-today" id="today-btn">Hôm nay</button>
+          <button class="btn btn-ghost" id="next-week-btn">Tuần sau ▶</button>
+        </div>
+        <div class="schedule-actions">
+          <button class="btn btn-primary" id="add-event-btn">
+            <span>+</span> Thêm sự kiện
+          </button>
+          <button class="btn btn-accent" id="template-btn" title="Áp dụng template lịch">
+            <span>📋</span> Template
+          </button>
+          <button class="btn btn-ghost" id="copy-day-btn" title="Sao chép lịch ngày hôm nay sang ngày khác">
+            <span>📋</span> Sao chép ngày
+          </button>
+          <button class="btn btn-ghost" id="clear-day-btn" title="Xóa tất cả sự kiện trong ngày đang chọn">
+            <span>🗑️</span> Xóa ngày
+          </button>
+        </div>
+      </div>
+
+      <!-- Week Header -->
+      <div class="week-header" id="week-header">
+        <!-- Day tabs injected by JS -->
+      </div>
+
+      <!-- Day View -->
+      <div class="day-view" id="day-view">
+        <div class="time-column" id="time-column">
+          <!-- Time labels 5:00 - 23:00 -->
+        </div>
+        <div class="events-column" id="events-column">
+          <!-- Time slots and event blocks -->
+        </div>
+      </div>
+
+      <!-- Week Overview -->
+      <div class="week-overview" id="week-overview">
+        <h3>📊 Tổng quan tuần</h3>
+        <div class="week-stats" id="week-stats">
+          <!-- Stats injected by JS -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add/Edit Event Modal -->
+  <div class="modal-overlay" id="event-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Thêm sự kiện</h2>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <form id="event-form">
+        <input type="hidden" id="event-id">
+        <div class="form-group">
+          <label for="event-title">Tiêu đề *</label>
+          <input type="text" id="event-title" placeholder="VD: Luyện CP - Segment Tree" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="event-date">Ngày</label>
+            <input type="date" id="event-date" required>
+          </div>
+          <div class="form-group">
+            <label for="event-start">Bắt đầu</label>
+            <input type="time" id="event-start" value="19:00" required>
+          </div>
+          <div class="form-group">
+            <label for="event-end">Kết thúc</label>
+            <input type="time" id="event-end" value="21:00" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="event-category">Danh mục</label>
+          <div class="category-select" id="category-select">
+            <button type="button" class="cat-btn active" data-cat="cp"><span class="cat-dot cp"></span>CP</button>
+            <button type="button" class="cat-btn" data-cat="ielts"><span class="cat-dot ielts"></span>IELTS</button>
+            <button type="button" class="cat-btn" data-cat="school"><span class="cat-dot school"></span>Học văn hóa</button>
+            <button type="button" class="cat-btn" data-cat="exercise"><span class="cat-dot exercise"></span>Thể dục</button>
+            <button type="button" class="cat-btn" data-cat="rest"><span class="cat-dot rest"></span>Nghỉ ngơi</button>
+            <button type="button" class="cat-btn" data-cat="other"><span class="cat-dot other"></span>Khác</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="event-notes">Ghi chú</label>
+          <textarea id="event-notes" rows="3" placeholder="VD: CSES bài 10-15, Focus vào Lazy Propagation"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="modal-cancel-btn">Hủy</button>
+          <button type="button" class="btn btn-danger" id="modal-delete-btn" style="display:none;">🗑️ Xóa</button>
+          <button type="submit" class="btn btn-primary" id="modal-save-btn">💾 Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Copy Day Modal -->
+  <div class="modal-overlay" id="copy-modal" style="display:none;">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Sao chép lịch</h2>
+        <button class="modal-close" id="copy-modal-close">✕</button>
+      </div>
+      <div class="form-group">
+        <label for="copy-source">Từ ngày</label>
+        <input type="date" id="copy-source">
+      </div>
+      <div class="form-group">
+        <label for="copy-target">Sang ngày</label>
+        <input type="date" id="copy-target">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="copy-cancel-btn">Hủy</button>
+        <button class="btn btn-primary" id="copy-confirm-btn">📋 Sao chép</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Modal -->
+  <div class="modal-overlay" id="template-modal" style="display:none;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2>📋 Template lịch</h2>
+        <button class="modal-close" id="template-modal-close">✕</button>
+      </div>
+      <div class="template-content">
+        <p class="template-desc">Áp dụng template cho ngày <strong id="template-target-date"></strong></p>
+        <div class="template-grid" id="template-grid">
+          <!-- Template cards injected by JS -->
+        </div>
+        <div class="template-preview" id="template-preview" style="display:none;">
+          <h3>📌 Xem trước</h3>
+          <div class="template-events-list" id="template-events-list"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="template-cancel-btn">Hủy</button>
+          <button class="btn btn-ghost" id="save-as-template-btn">💾 Lưu ngày hiện tại làm template</button>
+          <button class="btn btn-primary" id="template-apply-btn" disabled>✨ Áp dụng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
