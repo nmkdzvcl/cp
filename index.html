@@ -19,8 +19,8 @@
         <span class="logo-icon">⚡</span>
         <span class="logo-text">CP Hub</span>
       </div>
-    <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng/tối">🌙</button>
-  </div>
+      <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng/tối">🌙</button>
+    </div>
     <ul class="nav-links">
       <li>
         <button class="nav-btn active" data-page="problems" id="nav-problems">
@@ -65,6 +65,12 @@
         <p class="page-subtitle">Tìm bài tập Codeforces theo rating, chủ đề và độ khó</p>
       </div>
 
+      <!-- Search Bar -->
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="🔍 Tìm kiếm bài tập theo tên, ID, tags... (Ctrl+K)" />
+        <button class="btn btn-primary" id="search-btn">Tìm</button>
+      </div>
+
       <!-- Solved Stats Bar -->
       <div class="solved-stats-bar" id="solved-stats-bar">
         <div class="solved-stat">
@@ -103,14 +109,21 @@
             <input type="number" id="rating-max" placeholder="3500" min="800" max="3500" step="100">
           </div>
           <div class="filter-group filter-group-wide">
-            <label>Chủ đề (Tags)</label>
-            <div class="tags-container" id="tags-container">
-              <!-- Tags injected by JS -->
+            <div class="topic-header">
+              <label for="tag-search-input">Chủ đề</label>
+              <button type="button" class="link-btn" id="clear-tags-btn">Bỏ chọn</button>
             </div>
+            <input type="search" id="tag-search-input" class="tag-search-input" placeholder="Tìm chủ đề: graphs, dp, strings..." autocomplete="off">
+            <div class="tag-mode" role="group" aria-label="Cách kết hợp chủ đề">
+              <button type="button" class="tag-mode-btn active" data-tag-mode="any">Có bất kỳ</button>
+              <button type="button" class="tag-mode-btn" data-tag-mode="all">Có tất cả</button>
+            </div>
+            <div class="selected-tags" id="selected-tags" aria-live="polite"></div>
+            <div class="tags-container" id="tags-container"></div>
           </div>
         </div>
         <div class="filters-actions">
-          <button class="btn btn-primary" id="search-btn">
+          <button class="btn btn-primary" id="filters-search-btn">
             <span>🔍</span> Tìm bài
           </button>
           <button class="btn btn-accent" id="random-btn">
@@ -135,7 +148,7 @@
       <!-- Loading -->
       <div class="loading-overlay" id="problems-loading">
         <div class="spinner"></div>
-        <p>Đang tải dữ liệu từ Codeforces...</p>
+        <p>Đang tải dữ liệu...</p>
       </div>
 
       <!-- Results -->
@@ -148,6 +161,18 @@
         <button class="btn btn-ghost" id="prev-page-btn">← Trước</button>
         <span class="page-info" id="page-info">1 / 1</span>
         <button class="btn btn-ghost" id="next-page-btn">Sau →</button>
+      </div>
+
+      <!-- Data Management -->
+      <div class="data-management">
+        <button class="btn btn-primary" id="choose-data-folder-btn">📁 Chọn thư mục lưu</button>
+        <button class="btn btn-ghost" id="save-to-disk-btn" disabled>💾 Lưu vào ổ cứng</button>
+        <button class="btn btn-ghost" id="export-data-btn">📤 Export Data</button>
+        <button class="btn btn-ghost btn-import" id="import-data-btn">
+          📥 Import Data
+          <input type="file" id="import-file-input" accept=".json">
+        </button>
+        <span class="disk-storage-status" id="disk-storage-status">Dữ liệu đang lưu trên trình duyệt</span>
       </div>
 
       <!-- Bookmarks -->

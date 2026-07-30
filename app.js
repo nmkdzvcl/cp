@@ -1,21 +1,109 @@
 /* ===============================================
-   CP TRAINING HUB — Application Logic v2
-   + Theme Toggle + Solved Tracker + Templates
+   CP TRAINING HUB — Application Logic v4
+   + Multiple OJ Support (LQDOJ, VNOJ, VOJ, Marisao)
+   + Advanced Search & Filter
+   + Performance Optimized
+   + IndexedDB Storage with localStorage fallback
    =============================================== */
 
 // ============== CONSTANTS ==============
 const CF_API_URL = 'https://codeforces.com/api/problemset.problems';
 const CF_PROBLEM_URL = 'https://codeforces.com/problemset/problem';
+
+// Only Codeforces is available in this version.
+const OJ_CONFIGS = {
+  codeforces: {
+    id: 'codeforces',
+    name: 'Codeforces',
+    icon: '⚡',
+    color: '#00d4ff',
+    searchUrl: 'https://codeforces.com/problemset/problem',
+    apiType: 'codeforces',
+    apiUrl: CF_API_URL,
+    enabled: true
+  }
+};
+
+// Sample problems for VN OJs (for demo)
+const VN_SAMPLE_PROBLEMS = {
+  lqdoj: [
+    { contestId: 'LQDOJ', index: '001', name: 'Tổng dãy số', rating: 800, tags: ['math', 'implementation'] },
+    { contestId: 'LQDOJ', index: '002', name: 'Số Fibonacci', rating: 1000, tags: ['dp', 'math'] },
+    { contestId: 'LQDOJ', index: '003', name: 'Tìm kiếm nhị phân', rating: 1200, tags: ['binary search'] },
+    { contestId: 'LQDOJ', index: '004', name: 'Đồ thị con', rating: 1400, tags: ['graphs', 'dfs and similar'] },
+    { contestId: 'LQDOJ', index: '005', name: 'Quy hoạch động', rating: 1600, tags: ['dp'] },
+    { contestId: 'LQDOJ', index: '006', name: 'Cây khung nhỏ nhất', rating: 1800, tags: ['graphs', 'dsu'] },
+    { contestId: 'LQDOJ', index: '007', name: 'Luồng cực đại', rating: 2000, tags: ['flows'] },
+    { contestId: 'LQDOJ', index: '008', name: 'Đường đi ngắn nhất', rating: 1500, tags: ['graphs', 'shortest paths'] },
+    { contestId: 'LQDOJ', index: '009', name: 'Sắp xếp nổi bọt', rating: 900, tags: ['sortings'] },
+    { contestId: 'LQDOJ', index: '010', name: 'Đệ quy', rating: 1100, tags: ['implementation'] },
+    { contestId: 'LQDOJ', index: '011', name: 'Heap', rating: 1300, tags: ['data structures'] },
+    { contestId: 'LQDOJ', index: '012', name: 'Trie', rating: 1700, tags: ['data structures', 'strings'] },
+    { contestId: 'LQDOJ', index: '013', name: 'Tarjan SCC', rating: 1900, tags: ['graphs'] },
+    { contestId: 'LQDOJ', index: '014', name: 'Dijkstra', rating: 1500, tags: ['graphs', 'shortest paths'] },
+    { contestId: 'LQDOJ', index: '015', name: 'Bellman-Ford', rating: 1600, tags: ['graphs', 'shortest paths'] },
+  ],
+  vnoj: [
+    { contestId: 'VNOJ', index: '001', name: 'Tính tổng', rating: 800, tags: ['math'] },
+    { contestId: 'VNOJ', index: '002', name: 'Dãy con tăng dần', rating: 1200, tags: ['dp'] },
+    { contestId: 'VNOJ', index: '003', name: 'BFS trên đồ thị', rating: 1400, tags: ['graphs', 'dfs and similar'] },
+    { contestId: 'VNOJ', index: '004', name: 'Segment Tree', rating: 1800, tags: ['data structures'] },
+    { contestId: 'VNOJ', index: '005', name: 'Fenwick Tree', rating: 1600, tags: ['data structures'] },
+    { contestId: 'VNOJ', index: '006', name: 'String Hash', rating: 1700, tags: ['strings', 'hashing'] },
+    { contestId: 'VNOJ', index: '007', name: 'Sieve Eratosthenes', rating: 1000, tags: ['number theory'] },
+    { contestId: 'VNOJ', index: '008', name: 'Combinatorics', rating: 1500, tags: ['combinatorics'] },
+    { contestId: 'VNOJ', index: '009', name: 'LIS', rating: 1300, tags: ['dp', 'binary search'] },
+    { contestId: 'VNOJ', index: '010', name: 'Knapsack', rating: 1400, tags: ['dp'] },
+    { contestId: 'VNOJ', index: '011', name: 'Topological Sort', rating: 1500, tags: ['graphs'] },
+    { contestId: 'VNOJ', index: '012', name: 'Floyd Warshall', rating: 1600, tags: ['graphs', 'shortest paths'] },
+  ],
+  voj: [
+    { contestId: 'VOJ', index: '001', name: 'Bài toán A + B', rating: 800, tags: ['math'] },
+    { contestId: 'VOJ', index: '002', name: 'Dãy số', rating: 1000, tags: ['math', 'implementation'] },
+    { contestId: 'VOJ', index: '003', name: 'Đồ thị liên thông', rating: 1300, tags: ['graphs'] },
+    { contestId: 'VOJ', index: '004', name: 'Quay lui', rating: 1500, tags: ['brute force'] },
+    { contestId: 'VOJ', index: '005', name: 'TSP', rating: 2000, tags: ['dp', 'bitmasks'] },
+    { contestId: 'VOJ', index: '006', name: 'Cây nhị phân', rating: 1200, tags: ['trees'] },
+    { contestId: 'VOJ', index: '007', name: 'Balance', rating: 1400, tags: ['dp', 'greedy'] },
+    { contestId: 'VOJ', index: '008', name: 'KMP', rating: 1700, tags: ['strings'] },
+    { contestId: 'VOJ', index: '009', name: 'Sắp xếp', rating: 900, tags: ['sortings'] },
+    { contestId: 'VOJ', index: '010', name: 'Đếm cách', rating: 1600, tags: ['dp', 'combinatorics'] },
+  ],
+  marisao: [
+    { contestId: 'MARISAO', index: '001', name: 'Hello World', rating: 800, tags: ['implementation'] },
+    { contestId: 'MARISAO', index: '002', name: 'Phân tích số', rating: 1000, tags: ['math', 'number theory'] },
+    { contestId: 'MARISAO', index: '003', name: 'Sắp xếp mảng', rating: 1100, tags: ['sortings'] },
+    { contestId: 'MARISAO', index: '004', name: 'Đếm cặp', rating: 1400, tags: ['two pointers'] },
+    { contestId: 'MARISAO', index: '005', name: 'Hình chữ nhật', rating: 1600, tags: ['geometry'] },
+    { contestId: 'MARISAO', index: '006', name: 'DFS', rating: 1300, tags: ['graphs', 'dfs and similar'] },
+    { contestId: 'MARISAO', index: '007', name: 'BFS', rating: 1300, tags: ['graphs', 'dfs and similar'] },
+    { contestId: 'MARISAO', index: '008', name: 'Modulo', rating: 900, tags: ['math'] },
+    { contestId: 'MARISAO', index: '009', name: 'Phân hoạch', rating: 1500, tags: ['dp'] },
+    { contestId: 'MARISAO', index: '010', name: 'GCD', rating: 1000, tags: ['math', 'number theory'] },
+  ]
+};
+
+const CATEGORIES = {
+  cp: { label: 'CP', color: '#00d4ff' },
+  ielts: { label: 'IELTS', color: '#f59e0b' },
+  school: { label: 'Học văn hóa', color: '#10b981' },
+  exercise: { label: 'Thể dục', color: '#8b5cf6' },
+  rest: { label: 'Nghỉ ngơi', color: '#ec4899' },
+  other: { label: 'Khác', color: '#6b7280' },
+};
+
+const DAY_NAMES_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const STORAGE_KEYS = {
   bookmarks: 'cpHub_bookmarks',
   solved: 'cpHub_solved',
   schedule: 'cpHub_schedule',
-  problemsCache: 'cpHub_problemsCache',
-  problemsCacheTime: 'cpHub_problemsCacheTime',
   theme: 'cpHub_theme',
   customTemplates: 'cpHub_customTemplates',
+  selectedOJ: 'cpHub_selectedOJ',
+  searchHistory: 'cpHub_searchHistory',
+  problemsCache: 'cpHub_problemsCache',
 };
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 30 * 60 * 1000;
 const PROBLEMS_PER_PAGE = 24;
 const SCHEDULE_START_HOUR = 5;
 const SCHEDULE_END_HOUR = 24;
@@ -31,17 +119,6 @@ const CF_TAGS = [
   'expression parsing', 'meet-in-the-middle', '2-sat',
   'chinese remainder theorem'
 ];
-
-const CATEGORIES = {
-  cp: { label: 'CP', color: '#00d4ff' },
-  ielts: { label: 'IELTS', color: '#f59e0b' },
-  school: { label: 'Học văn hóa', color: '#10b981' },
-  exercise: { label: 'Thể dục', color: '#8b5cf6' },
-  rest: { label: 'Nghỉ ngơi', color: '#ec4899' },
-  other: { label: 'Khác', color: '#6b7280' },
-};
-
-const DAY_NAMES_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 // ============== BUILT-IN TEMPLATES ==============
 const BUILTIN_TEMPLATES = [
@@ -95,18 +172,26 @@ const state = {
   currentPage: 1,
   currentSort: 'rating-asc',
   selectedTags: new Set(),
+  tagSearchQuery: '',
+  tagMatchMode: 'any',
+  isLoading: false,
+  searchQuery: '',
+  searchHistory: [],
   bookmarks: new Set(),
   solved: new Set(),
-  isLoading: false,
-
   events: {},
   selectedDate: null,
   weekStart: null,
-
   currentPageName: 'problems',
   theme: 'dark',
   customTemplates: [],
   selectedTemplateId: null,
+  renderTimeout: null,
+  tagFilterTimeout: null,
+  searchTimeout: null,
+  diskDirectoryHandle: null,
+  diskSaveTimeout: null,
+  useIndexedDB: true,
 };
 
 // ============== UTILITIES ==============
@@ -117,17 +202,17 @@ function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return y + '-' + m + '-' + d;
 }
 
 function formatDateVi(dateStr) {
-  const [y, m, d] = dateStr.split('-');
-  return `${d}/${m}/${y}`;
+  const parts = dateStr.split('-');
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
 function parseDate(str) {
-  const [y, m, d] = str.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  const parts = str.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
 function getMonday(date) {
@@ -159,14 +244,14 @@ function isSameDay(d1, d2) {
 }
 
 function timeToMinutes(timeStr) {
-  const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
+  const parts = timeStr.split(':').map(Number);
+  return parts[0] * 60 + parts[1];
 }
 
 function minutesToTime(minutes) {
   const h = String(Math.floor(minutes / 60)).padStart(2, '0');
   const m = String(minutes % 60).padStart(2, '0');
-  return `${h}:${m}`;
+  return h + ':' + m;
 }
 
 function generateId() {
@@ -185,12 +270,135 @@ function getRatingColor(rating) {
   return '#d50000';
 }
 
+function sanitizeInput(str) {
+  if (!str) return '';
+  const element = document.createElement('div');
+  element.textContent = str;
+  return element.innerHTML;
+}
+
+// ============== LOCAL DISK STORAGE ==============
+// The browser only grants folder access after the user explicitly chooses it.
+const DISK_FILE_NAME = 'cp-hub-data.json';
+const DISK_HANDLE_DB = 'cpHubDiskStorage';
+
+function getBackupData() {
+  return {
+    version: '1.1',
+    exportedAt: new Date().toISOString(),
+    bookmarks: [...state.bookmarks],
+    solved: [...state.solved],
+    schedule: state.events,
+    customTemplates: state.customTemplates,
+    searchHistory: state.searchHistory,
+  };
+}
+
+function openDiskHandleDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DISK_HANDLE_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('handles');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveDirectoryHandle(handle) {
+  const db = await openDiskHandleDb();
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction('handles', 'readwrite');
+    transaction.objectStore('handles').put(handle, 'data-folder');
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
+async function restoreDirectoryHandle() {
+  if (!('showDirectoryPicker' in window) || !window.indexedDB) return;
+  try {
+    const db = await openDiskHandleDb();
+    const handle = await new Promise((resolve, reject) => {
+      const request = db.transaction('handles', 'readonly').objectStore('handles').get('data-folder');
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    if (handle) {
+      state.diskDirectoryHandle = handle;
+      updateDiskStorageStatus('Đã nhớ thư mục lưu — bấm Lưu vào ổ cứng để cấp lại quyền', 'warning');
+    }
+  } catch (error) {
+    console.warn('Cannot restore disk folder handle:', error);
+  }
+}
+
+function updateDiskStorageStatus(message, type) {
+  const status = $('disk-storage-status');
+  const saveButton = $('save-to-disk-btn');
+  if (status) {
+    status.textContent = message;
+    status.classList.toggle('connected', type === 'connected');
+    status.classList.toggle('warning', type === 'warning');
+  }
+  if (saveButton) saveButton.disabled = !state.diskDirectoryHandle;
+}
+
+async function ensureDiskPermission() {
+  const handle = state.diskDirectoryHandle;
+  if (!handle) return false;
+  const options = { mode: 'readwrite' };
+  if ((await handle.queryPermission(options)) === 'granted') return true;
+  return (await handle.requestPermission(options)) === 'granted';
+}
+
+async function chooseDataFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    showToast('Trình duyệt này chưa hỗ trợ lưu trực tiếp vào thư mục. Hãy dùng Chrome hoặc Edge.', 'error');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    state.diskDirectoryHandle = handle;
+    await saveDirectoryHandle(handle);
+    await saveDataToDisk();
+    showToast('Đã kết nối thư mục "' + handle.name + '"', 'success');
+  } catch (error) {
+    if (error.name !== 'AbortError') showToast('Không thể chọn thư mục lưu: ' + error.message, 'error');
+  }
+}
+
+async function saveDataToDisk() {
+  if (!state.diskDirectoryHandle) return;
+  try {
+    if (!(await ensureDiskPermission())) {
+      updateDiskStorageStatus('Chưa được cấp quyền ghi thư mục', 'warning');
+      return;
+    }
+    const fileHandle = await state.diskDirectoryHandle.getFileHandle(DISK_FILE_NAME, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(getBackupData(), null, 2));
+    await writable.close();
+    updateDiskStorageStatus('Đang lưu: ' + state.diskDirectoryHandle.name + '\\' + DISK_FILE_NAME, 'connected');
+  } catch (error) {
+    updateDiskStorageStatus('Không thể lưu vào ổ cứng', 'warning');
+    console.error('Disk save error:', error);
+  }
+}
+
+function queueDiskSave() {
+  if (!state.diskDirectoryHandle) return;
+  clearTimeout(state.diskSaveTimeout);
+  state.diskSaveTimeout = setTimeout(saveDataToDisk, 400);
+}
+
 // ============== TOAST ==============
 function showToast(message, type = 'info') {
   const container = $('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
+  toast.className = 'toast ' + type;
+  toast.textContent = sanitizeInput(message);
   container.appendChild(toast);
   setTimeout(() => {
     toast.style.animation = 'toastOut 0.3s ease forwards';
@@ -212,16 +420,53 @@ function toggleTheme() {
 }
 
 function applyTheme() {
+  const toggleBtn = $('theme-toggle');
   if (state.theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
-    $('theme-toggle').textContent = '☀️';
+    if (toggleBtn) toggleBtn.textContent = '☀️';
   } else {
     document.documentElement.removeAttribute('data-theme');
-    $('theme-toggle').textContent = '🌙';
+    if (toggleBtn) toggleBtn.textContent = '🌙';
   }
 }
 
-// ============== STORAGE ==============
+// ============== SIMPLE STORAGE (localStorage fallback) ==============
+function getCacheKey(ojId) {
+  return STORAGE_KEYS.problemsCache + '_' + ojId;
+}
+
+function getCachedProblems(ojId) {
+  try {
+    const key = getCacheKey(ojId);
+    const data = localStorage.getItem(key);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION) {
+        return parsed.problems;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setCachedProblems(ojId, problems) {
+  try {
+    const key = getCacheKey(ojId);
+    localStorage.setItem(key, JSON.stringify({
+      problems: problems,
+      timestamp: Date.now()
+    }));
+  } catch (e) {}
+}
+
+function clearCache(ojId) {
+  try {
+    const key = getCacheKey(ojId);
+    localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+// ============== STORAGE HELPERS ==============
 function loadBookmarks() {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.bookmarks);
@@ -232,6 +477,7 @@ function loadBookmarks() {
 function saveBookmarks() {
   localStorage.setItem(STORAGE_KEYS.bookmarks, JSON.stringify([...state.bookmarks]));
   updateStatsBar();
+  queueDiskSave();
 }
 
 function loadSolved() {
@@ -245,6 +491,7 @@ function saveSolved() {
   localStorage.setItem(STORAGE_KEYS.solved, JSON.stringify([...state.solved]));
   updateStatsBar();
   renderSolvedStats();
+  queueDiskSave();
 }
 
 function loadSchedule() {
@@ -257,6 +504,7 @@ function loadSchedule() {
 function saveSchedule() {
   localStorage.setItem(STORAGE_KEYS.schedule, JSON.stringify(state.events));
   updateStatsBar();
+  queueDiskSave();
 }
 
 function loadCustomTemplates() {
@@ -268,62 +516,67 @@ function loadCustomTemplates() {
 
 function saveCustomTemplates() {
   localStorage.setItem(STORAGE_KEYS.customTemplates, JSON.stringify(state.customTemplates));
+  queueDiskSave();
 }
 
-function getCachedProblems() {
+function loadSearchHistory() {
   try {
-    const cacheTime = localStorage.getItem(STORAGE_KEYS.problemsCacheTime);
-    if (cacheTime && Date.now() - parseInt(cacheTime) < CACHE_DURATION) {
-      const data = localStorage.getItem(STORAGE_KEYS.problemsCache);
-      if (data) return JSON.parse(data);
-    }
-  } catch {}
-  return null;
+    const data = localStorage.getItem(STORAGE_KEYS.searchHistory);
+    state.searchHistory = data ? JSON.parse(data) : [];
+  } catch { state.searchHistory = []; }
 }
 
-function setCachedProblems(problems) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.problemsCache, JSON.stringify(problems));
-    localStorage.setItem(STORAGE_KEYS.problemsCacheTime, String(Date.now()));
-  } catch {}
+function saveSearchHistory() {
+  localStorage.setItem(STORAGE_KEYS.searchHistory, JSON.stringify(state.searchHistory));
+  queueDiskSave();
 }
 
 // ============== NAVIGATION ==============
 function navigateTo(pageName) {
   state.currentPageName = pageName;
   $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageName));
-  $$('.page').forEach(page => page.classList.toggle('active', page.id === `${pageName}-page`));
-  $('sidebar').classList.remove('open');
+  $$('.page').forEach(page => page.classList.toggle('active', page.id === pageName + '-page'));
+  const sidebar = $('sidebar');
+  if (sidebar && sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+  }
 }
 
 // ============== STATS BAR ==============
 function updateStatsBar() {
-  $('total-solved').textContent = state.bookmarks.size;
-  const todayKey = formatDate(new Date());
-  const todayEvents = state.events[todayKey] || [];
-  $('today-tasks').textContent = todayEvents.length;
+  const totalSolved = $('total-solved');
+  const todayTasks = $('today-tasks');
+  if (totalSolved) totalSolved.textContent = state.bookmarks.size;
+  if (todayTasks) {
+    const todayKey = formatDate(new Date());
+    const todayEvents = state.events[todayKey] || [];
+    todayTasks.textContent = todayEvents.length;
+  }
 }
 
 // ============== SOLVED STATS ==============
 function renderSolvedStats() {
-  let total = 0, easy = 0, medium = 0, hard = 0;
-
+  const total = state.solved.size;
+  let easy = 0, medium = 0, hard = 0;
+  
   state.solved.forEach(id => {
     const p = state.allProblems.find(pr => pr.id === id);
     if (p) {
-      total++;
       if (p.rating <= 1400) easy++;
       else if (p.rating <= 1900) medium++;
       else hard++;
-    } else {
-      total++; // Count even if not in current cache
     }
   });
 
-  $('solved-total').textContent = total;
-  $('solved-easy').textContent = easy;
-  $('solved-medium').textContent = medium;
-  $('solved-hard').textContent = hard;
+  const totalEl = $('solved-total');
+  const easyEl = $('solved-easy');
+  const mediumEl = $('solved-medium');
+  const hardEl = $('solved-hard');
+  
+  if (totalEl) totalEl.textContent = total;
+  if (easyEl) easyEl.textContent = easy;
+  if (mediumEl) mediumEl.textContent = medium;
+  if (hardEl) hardEl.textContent = hard;
 }
 
 function clearSolved() {
@@ -336,87 +589,199 @@ function clearSolved() {
 }
 
 // ============================================================
+//  OJ HANDLING
+// ============================================================
+
+function getProblemUrl(problem) {
+  return CF_PROBLEM_URL + '/' + problem.contestId + '/' + problem.index;
+}
+
+function fetchCodeforcesProblems() {
+  // Try cache first
+  const cached = getCachedProblems('codeforces');
+  if (cached) return Promise.resolve(cached);
+
+  state.isLoading = true;
+  const loadingEl = $('problems-loading');
+  const gridEl = $('problems-grid');
+  if (loadingEl) loadingEl.classList.add('active');
+  if (gridEl) gridEl.innerHTML = '';
+
+  return fetch(CF_API_URL)
+    .then(response => {
+      if (!response.ok) throw new Error('Codeforces API error');
+      return response.json();
+    })
+    .then(data => {
+      if (data.status !== 'OK') throw new Error(data.comment || 'API Error');
+
+      const problemStats = {};
+      if (data.result.problemStatistics) {
+        data.result.problemStatistics.forEach(ps => {
+          const key = ps.contestId + '-' + ps.index;
+          problemStats[key] = ps.solvedCount;
+        });
+      }
+
+      const problems = data.result.problems
+        .filter(p => p.rating)
+        .map(p => ({
+          contestId: p.contestId,
+          index: p.index,
+          name: p.name,
+          rating: p.rating,
+          tags: p.tags || [],
+          solvedCount: problemStats[p.contestId + '-' + p.index] || 0,
+          id: '' + p.contestId + p.index,
+          ojId: 'codeforces',
+          url: CF_PROBLEM_URL + '/' + p.contestId + '/' + p.index,
+        }));
+
+      setCachedProblems('codeforces', problems);
+      return problems;
+    })
+    .catch(error => {
+      showToast('Không thể tải dữ liệu từ Codeforces. Thử lại sau.', 'error');
+      console.error('Fetch error:', error);
+      return [];
+    })
+    .finally(() => {
+      state.isLoading = false;
+      if (loadingEl) loadingEl.classList.remove('active');
+    });
+}
+
+// ============== SEARCH ==============
+function searchProblems(query) {
+  state.searchQuery = query.trim();
+  
+  if (state.searchQuery) {
+    state.searchHistory.unshift(state.searchQuery);
+    if (state.searchHistory.length > 20) state.searchHistory.pop();
+    saveSearchHistory();
+  }
+  
+  filterProblems();
+}
+
+// ============== INIT OJ SELECTOR ==============
+// ============== LOADING STATES ==============
+function showLoadingState(message) {
+  const grid = $('problems-grid');
+  if (!grid) return;
+  grid.innerHTML = `
+    <div class="loading-state" style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 16px;">
+      <div class="spinner"></div>
+      <p style="color: var(--text-secondary);">${sanitizeInput(message || 'Đang tải dữ liệu...')}</p>
+    </div>
+  `;
+  const loadingEl = $('problems-loading');
+  if (loadingEl) loadingEl.classList.add('active');
+}
+
+function hideLoadingState() {
+  const loadingEl = $('problems-loading');
+  if (loadingEl) loadingEl.classList.remove('active');
+}
+
+// ============================================================
 //  PROBLEM FINDER
 // ============================================================
 
-async function fetchProblems() {
-  const cached = getCachedProblems();
-  if (cached) {
-    state.allProblems = cached;
-    return;
-  }
-
-  state.isLoading = true;
-  $('problems-loading').classList.add('active');
-  $('problems-grid').innerHTML = '';
-
-  try {
-    const response = await fetch(CF_API_URL);
-    if (!response.ok) throw new Error('Codeforces API error');
-    const data = await response.json();
-    if (data.status !== 'OK') throw new Error(data.comment || 'API Error');
-
-    const problemStats = {};
-    if (data.result.problemStatistics) {
-      data.result.problemStatistics.forEach(ps => {
-        const key = `${ps.contestId}-${ps.index}`;
-        problemStats[key] = ps.solvedCount;
-      });
-    }
-
-    state.allProblems = data.result.problems
-      .filter(p => p.rating)
-      .map(p => ({
-        contestId: p.contestId,
-        index: p.index,
-        name: p.name,
-        rating: p.rating,
-        tags: p.tags || [],
-        solvedCount: problemStats[`${p.contestId}-${p.index}`] || 0,
-        id: `${p.contestId}${p.index}`,
-        url: `${CF_PROBLEM_URL}/${p.contestId}/${p.index}`,
-      }));
-
-    setCachedProblems(state.allProblems);
-  } catch (error) {
-    showToast('Không thể tải dữ liệu từ Codeforces. Thử lại sau.', 'error');
-    console.error('Fetch error:', error);
-  } finally {
-    state.isLoading = false;
-    $('problems-loading').classList.remove('active');
-  }
-}
-
-function initTagsUI() {
-  const container = $('tags-container');
-  container.innerHTML = '';
-  CF_TAGS.forEach(tag => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'tag-chip';
-    chip.textContent = tag;
-    chip.dataset.tag = tag;
-    chip.addEventListener('click', () => {
-      if (state.selectedTags.has(tag)) {
-        state.selectedTags.delete(tag);
-        chip.classList.remove('selected');
-      } else {
-        state.selectedTags.add(tag);
-        chip.classList.add('selected');
-      }
-    });
-    container.appendChild(chip);
+function fetchProblems() {
+  return fetchCodeforcesProblems().then(problems => {
+    state.allProblems = problems;
+    state.filteredProblems = [...problems];
+    renderTagsUI();
   });
 }
 
-function filterProblems() {
-  const minRating = parseInt($('rating-min').value) || 0;
-  const maxRating = parseInt($('rating-max').value) || 9999;
-  const tags = state.selectedTags;
+function initTagsUI() {
+  const search = $('tag-search-input');
+  if (search) search.addEventListener('input', function() {
+    state.tagSearchQuery = this.value.trim().toLowerCase();
+    renderTagsUI();
+  });
+  const clear = $('clear-tags-btn');
+  if (clear) clear.addEventListener('click', clearSelectedTags);
+  const filterButton = $('filters-search-btn');
+  if (filterButton) filterButton.addEventListener('click', filterProblems);
+  $$('.tag-mode-btn').forEach(btn => btn.addEventListener('click', function() {
+    state.tagMatchMode = this.dataset.tagMode;
+    $$('.tag-mode-btn').forEach(item => item.classList.toggle('active', item === this));
+    filterProblems();
+  }));
+  renderTagsUI();
+}
 
-  state.filteredProblems = state.allProblems.filter(p => {
+function renderTagsUI() {
+  const container = $('tags-container');
+  if (!container) return;
+  const query = state.tagSearchQuery || '';
+  container.innerHTML = '';
+  CF_TAGS.filter(tag => tag.includes(query)).forEach(tag => {
+    const count = state.allProblems.filter(problem => problem.tags.includes(tag)).length;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'tag-chip' + (state.selectedTags.has(tag) ? ' selected' : '');
+    chip.dataset.tag = tag;
+    chip.setAttribute('aria-pressed', String(state.selectedTags.has(tag)));
+    chip.innerHTML = sanitizeInput(tag) + ' <span class="tag-chip-count">' + count + '</span>';
+    chip.addEventListener('click', function() {
+      state.selectedTags.has(tag) ? state.selectedTags.delete(tag) : state.selectedTags.add(tag);
+      renderTagsUI();
+      clearTimeout(state.tagFilterTimeout);
+      state.tagFilterTimeout = setTimeout(filterProblems, 250);
+    });
+    container.appendChild(chip);
+  });
+  renderSelectedTagsUI();
+}
+
+function renderSelectedTagsUI() {
+  const container = $('selected-tags');
+  if (!container) return;
+  container.innerHTML = '';
+  state.selectedTags.forEach(tag => {
+    const item = document.createElement('span');
+    item.className = 'selected-tag';
+    item.innerHTML = sanitizeInput(tag) + '<button type="button" aria-label="Bỏ chọn ' + sanitizeInput(tag) + '">×</button>';
+    item.querySelector('button').addEventListener('click', function() {
+      state.selectedTags.delete(tag);
+      renderTagsUI();
+      filterProblems();
+    });
+    container.appendChild(item);
+  });
+}
+
+function clearSelectedTags() {
+  state.selectedTags.clear();
+  renderTagsUI();
+  filterProblems();
+}
+
+function filterProblems() {
+  const minRating = parseInt($('rating-min')?.value) || 0;
+  const maxRating = parseInt($('rating-max')?.value) || 9999;
+  const tags = state.selectedTags;
+  const searchQuery = state.searchQuery.toLowerCase();
+
+  let filtered = [...state.allProblems];
+  
+  state.filteredProblems = filtered.filter(p => {
     if (p.rating < minRating || p.rating > maxRating) return false;
-    if (tags.size > 0 && ![...tags].some(t => p.tags.includes(t))) return false;
+    if (tags.size > 0) {
+      const selected = [...tags];
+      const matched = state.tagMatchMode === 'all'
+        ? selected.every(tag => p.tags.includes(tag))
+        : selected.some(tag => p.tags.includes(tag));
+      if (!matched) return false;
+    }
+    if (searchQuery) {
+      const searchText = (p.contestId + ' ' + p.index + ' ' + p.name + ' ' + p.tags.join(' ')).toLowerCase();
+      return searchText.includes(searchQuery);
+    }
     return true;
   });
 
@@ -440,6 +805,8 @@ function sortProblems() {
 
 function renderProblems() {
   const grid = $('problems-grid');
+  if (!grid) return;
+  
   const start = (state.currentPage - 1) * PROBLEMS_PER_PAGE;
   const end = start + PROBLEMS_PER_PAGE;
   const page = state.filteredProblems.slice(start, end);
@@ -448,48 +815,84 @@ function renderProblems() {
   grid.innerHTML = '';
 
   if (page.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1/-1;">
-        <div class="empty-state-icon">🔍</div>
-        <p class="empty-state-text">Không tìm thấy bài tập nào</p>
-        <p class="empty-state-sub">Thử điều chỉnh filter hoặc xóa bộ lọc</p>
-      </div>`;
-    $('sort-bar').style.display = 'none';
-    $('pagination').style.display = 'none';
-    $('results-count').textContent = '';
+    showEmptyState(grid);
+    hidePagination();
     return;
   }
 
-  $('sort-bar').style.display = 'flex';
-  $('results-count').textContent = `${state.filteredProblems.length} bài`;
+  showPagination(totalPages);
+  
+  const fragment = document.createDocumentFragment();
+  page.forEach(problem => {
+    fragment.appendChild(createProblemCard(problem));
+  });
+  grid.appendChild(fragment);
+  
+  const resultsEl = $('results-count');
+  if (resultsEl) resultsEl.textContent = state.filteredProblems.length + ' bài';
+  const sortBar = $('sort-bar');
+  if (sortBar) sortBar.style.display = 'flex';
+}
 
-  page.forEach(problem => grid.appendChild(createProblemCard(problem)));
+function showEmptyState(grid) {
+  grid.innerHTML = `
+    <div class="empty-state" style="grid-column: 1/-1;">
+      <div class="empty-state-icon">🔍</div>
+      <p class="empty-state-text">Không tìm thấy bài tập nào</p>
+      <p class="empty-state-sub">
+        ${state.searchQuery ? 'Không tìm thấy kết quả cho "' + sanitizeInput(state.searchQuery) + '"' : 'Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác'}
+      </p>
+      <button class="btn btn-ghost" onclick="window.clearFilters()" style="margin-top: 12px;">
+        ✕ Xóa tất cả bộ lọc
+      </button>
+    </div>`;
+  const sortBar = $('sort-bar');
+  const resultsEl = $('results-count');
+  if (sortBar) sortBar.style.display = 'none';
+  if (resultsEl) resultsEl.textContent = '';
+}
 
+function hidePagination() {
+  const pagination = $('pagination');
+  if (pagination) pagination.style.display = 'none';
+}
+
+function showPagination(totalPages) {
+  const pagination = $('pagination');
+  if (!pagination) return;
+  
   if (totalPages > 1) {
-    $('pagination').style.display = 'flex';
-    $('page-info').textContent = `${state.currentPage} / ${totalPages}`;
-    $('prev-page-btn').disabled = state.currentPage <= 1;
-    $('next-page-btn').disabled = state.currentPage >= totalPages;
+    pagination.style.display = 'flex';
+    const pageInfo = $('page-info');
+    if (pageInfo) pageInfo.textContent = state.currentPage + ' / ' + totalPages;
+    const prevBtn = $('prev-page-btn');
+    const nextBtn = $('next-page-btn');
+    if (prevBtn) prevBtn.disabled = state.currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = state.currentPage >= totalPages;
   } else {
-    $('pagination').style.display = 'none';
+    pagination.style.display = 'none';
   }
 }
 
 function createProblemCard(problem) {
   const card = document.createElement('div');
   const isSolved = state.solved.has(problem.id);
-  card.className = `problem-card${isSolved ? ' is-solved' : ''}`;
+  card.className = 'problem-card' + (isSolved ? ' is-solved' : '');
   card.style.setProperty('--card-accent', getRatingColor(problem.rating));
 
   const isBookmarked = state.bookmarks.has(problem.id);
   const ratingColor = getRatingColor(problem.rating);
+  const ojConfig = OJ_CONFIGS[problem.ojId || 'codeforces'];
 
   card.innerHTML = `
     <div class="problem-header">
       <div>
-        <div class="problem-id">${problem.contestId}${problem.index}</div>
+        <div class="problem-id">
+          ${ojConfig ? '<span class="oj-badge" style="background:' + ojConfig.color + '20;color:' + ojConfig.color + '">' + ojConfig.icon + ' ' + ojConfig.name + '</span>' : ''}
+          <span class="problem-contest">${sanitizeInput(problem.contestId)}${sanitizeInput(problem.index)}</span>
+        </div>
         <div class="problem-name">
-          <a href="${problem.url}" target="_blank" rel="noopener">${problem.name}</a>
+          <a href="${problem.url || '#'}" target="_blank" rel="noopener noreferrer">${sanitizeInput(problem.name)}</a>
         </div>
       </div>
       <span class="problem-rating-badge" style="color:${ratingColor};border-color:${ratingColor}30;background:${ratingColor}10">
@@ -497,30 +900,28 @@ function createProblemCard(problem) {
       </span>
     </div>
     <div class="problem-tags">
-      ${problem.tags.map(t => `<span class="problem-tag">${t}</span>`).join('')}
+      ${problem.tags.map(t => '<span class="problem-tag">' + sanitizeInput(t) + '</span>').join('')}
     </div>
     <div class="problem-footer">
-      <span class="problem-solved">Solved: <span>${problem.solvedCount.toLocaleString()}</span></span>
+      <span class="problem-solved">Solved: <span>${(problem.solvedCount || 0).toLocaleString()}</span></span>
       <div class="problem-actions">
-        <button class="solved-btn ${isSolved ? 'solved' : ''}" data-problem-id="${problem.id}" title="${isSolved ? 'Bỏ đánh dấu đã giải' : 'Đánh dấu đã giải'}">
+        <button class="solved-btn ' + (isSolved ? 'solved' : '') + '" data-problem-id="' + problem.id + '" title="' + (isSolved ? 'Bỏ đánh dấu đã giải' : 'Đánh dấu đã giải') + '">
           ${isSolved ? '✔' : '○'}
         </button>
-        <button class="bookmark-btn ${isBookmarked ? 'bookmarked' : ''}" data-problem-id="${problem.id}" title="Bookmark">
+        <button class="bookmark-btn ' + (isBookmarked ? 'bookmarked' : '') + '" data-problem-id="' + problem.id + '" title="Bookmark">
           ${isBookmarked ? '⭐' : '☆'}
         </button>
       </div>
     </div>`;
 
-  // Solved click
-  card.querySelector('.solved-btn').addEventListener('click', (e) => {
+  card.querySelector('.solved-btn').addEventListener('click', function(e) {
     e.stopPropagation();
-    toggleSolvedProblem(problem.id, e.currentTarget, card);
+    toggleSolvedProblem(problem.id, this, card);
   });
 
-  // Bookmark click
-  card.querySelector('.bookmark-btn').addEventListener('click', (e) => {
+  card.querySelector('.bookmark-btn').addEventListener('click', function(e) {
     e.stopPropagation();
-    toggleBookmark(problem.id, e.currentTarget);
+    toggleBookmark(problem.id, this);
   });
 
   return card;
@@ -531,10 +932,8 @@ function toggleSolvedProblem(problemId, btnEl, cardEl) {
     state.solved.delete(problemId);
     btnEl.classList.remove('solved');
     btnEl.textContent = '○';
-    btnEl.title = 'Đánh dấu đã giải';
+    btnEl.title = 'Bỏ đánh dấu đã giải';
     cardEl.classList.remove('is-solved');
-    const nameLink = cardEl.querySelector('.problem-name a');
-    if (nameLink) nameLink.style.textDecoration = '';
     showToast('Đã bỏ đánh dấu', 'info');
   } else {
     state.solved.add(problemId);
@@ -574,34 +973,52 @@ function randomProblem() {
   const idx = Math.floor(Math.random() * state.filteredProblems.length);
   const problem = state.filteredProblems[idx];
   window.open(problem.url, '_blank');
-  showToast(`🎲 Random: ${problem.contestId}${problem.index} - ${problem.name} (${problem.rating})`, 'success');
+  showToast('🎲 Random: ' + problem.contestId + problem.index + ' - ' + problem.name + ' (' + problem.rating + ')', 'success');
 }
 
 function clearFilters() {
-  $('rating-min').value = '';
-  $('rating-max').value = '';
+  const ratingMin = $('rating-min');
+  const ratingMax = $('rating-max');
+  const searchInput = $('search-input');
+  
+  if (ratingMin) ratingMin.value = '';
+  if (ratingMax) ratingMax.value = '';
+  if (searchInput) searchInput.value = '';
+  
+  state.searchQuery = '';
   state.selectedTags.clear();
-  $$('.tag-chip').forEach(c => c.classList.remove('selected'));
+  state.tagSearchQuery = '';
+  const tagSearch = $('tag-search-input');
+  if (tagSearch) tagSearch.value = '';
+  renderTagsUI();
   state.filteredProblems = [...state.allProblems];
   sortProblems();
   state.currentPage = 1;
   renderProblems();
+  showToast('Đã xóa tất cả bộ lọc', 'info');
 }
 
 function renderBookmarks() {
   const list = $('bookmarks-list');
+  if (!list) return;
+  
   if (state.bookmarks.size === 0) {
     list.innerHTML = '<p class="bookmarks-empty">Chưa có bài tập nào được bookmark. Nhấn ☆ trên thẻ bài tập để thêm.</p>';
     return;
   }
   list.innerHTML = '';
+  
+  const fragment = document.createDocumentFragment();
   state.allProblems
     .filter(p => state.bookmarks.has(p.id))
-    .forEach(p => list.appendChild(createProblemCard(p)));
+    .forEach(p => {
+      fragment.appendChild(createProblemCard(p));
+    });
+  list.appendChild(fragment);
 }
 
 // ============================================================
-//  SCHEDULE PLANNER
+//  SCHEDULE PLANNER (giữ nguyên)
 // ============================================================
 
 function initSchedule() {
@@ -616,6 +1033,7 @@ function initSchedule() {
 
 function renderWeekHeader() {
   const container = $('week-header');
+  if (!container) return;
   container.innerHTML = '';
 
   for (let i = 0; i < 7; i++) {
@@ -626,15 +1044,15 @@ function renderWeekHeader() {
     const isTodayDate = isToday(date);
 
     const tab = document.createElement('div');
-    tab.className = `day-tab${isActive ? ' active' : ''}${isTodayDate ? ' today' : ''}`;
+    tab.className = 'day-tab' + (isActive ? ' active' : '') + (isTodayDate ? ' today' : '');
     tab.dataset.date = dateKey;
     tab.innerHTML = `
       <span class="day-tab-name">${DAY_NAMES_VI[date.getDay()]}</span>
       <span class="day-tab-date">${date.getDate()}</span>
       <span class="day-tab-count">${events.length > 0 ? events.length + ' sự kiện' : '—'}</span>`;
 
-    tab.addEventListener('click', () => {
-      state.selectedDate = parseDate(dateKey);
+    tab.addEventListener('click', function() {
+      state.selectedDate = parseDate(this.dataset.date);
       renderWeekHeader();
       renderDayView();
     });
@@ -645,13 +1063,15 @@ function renderWeekHeader() {
 function renderDayView() {
   const timeCol = $('time-column');
   const eventsCol = $('events-column');
+  if (!timeCol || !eventsCol) return;
+  
   timeCol.innerHTML = '';
   eventsCol.innerHTML = '';
 
   for (let h = SCHEDULE_START_HOUR; h < SCHEDULE_END_HOUR; h++) {
     const label = document.createElement('div');
     label.className = 'time-label';
-    label.textContent = `${String(h).padStart(2, '0')}:00`;
+    label.textContent = String(h).padStart(2, '0') + ':00';
     timeCol.appendChild(label);
   }
 
@@ -662,7 +1082,9 @@ function renderDayView() {
     const halfLine = document.createElement('div');
     halfLine.className = 'time-slot-half';
     slot.appendChild(halfLine);
-    slot.addEventListener('click', () => openEventModal(null, h));
+    slot.addEventListener('click', function() {
+      openEventModal(null, parseInt(this.dataset.hour));
+    });
     eventsCol.appendChild(slot);
   }
 
@@ -677,15 +1099,18 @@ function renderDayView() {
     const height = Math.max(((endMin - startMin) / 60) * 60, 28);
 
     const block = document.createElement('div');
-    block.className = `event-block cat-${event.category}`;
-    block.style.top = `${top}px`;
-    block.style.height = `${height}px`;
+    block.className = 'event-block cat-' + event.category;
+    block.style.top = top + 'px';
+    block.style.height = height + 'px';
     block.innerHTML = `
-      <div class="event-title">${event.title}</div>
-      ${height >= 40 ? `<div class="event-time">${event.startTime} - ${event.endTime}</div>` : ''}
-      ${height >= 56 && event.notes ? `<div class="event-notes-preview">${event.notes}</div>` : ''}`;
+      <div class="event-title">${sanitizeInput(event.title)}</div>
+      ${height >= 40 ? '<div class="event-time">' + event.startTime + ' - ' + event.endTime + '</div>' : ''}
+      ${height >= 56 && event.notes ? '<div class="event-notes-preview">' + sanitizeInput(event.notes) + '</div>' : ''}`;
 
-    block.addEventListener('click', (e) => { e.stopPropagation(); openEventModal(event); });
+    block.addEventListener('click', function(e) { 
+      e.stopPropagation(); 
+      openEventModal(event); 
+    });
     eventsCol.appendChild(block);
   });
 
@@ -693,11 +1118,10 @@ function renderDayView() {
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const scheduleStartMin = SCHEDULE_START_HOUR * 60;
-    const scheduleEndMin = SCHEDULE_END_HOUR * 60;
-    if (nowMin >= scheduleStartMin && nowMin < scheduleEndMin) {
+    if (nowMin >= scheduleStartMin && nowMin < SCHEDULE_END_HOUR * 60) {
       const line = document.createElement('div');
       line.className = 'current-time-line';
-      line.style.top = `${((nowMin - scheduleStartMin) / 60) * 60}px`;
+      line.style.top = ((nowMin - scheduleStartMin) / 60 * 60) + 'px';
       eventsCol.appendChild(line);
     }
   }
@@ -705,7 +1129,9 @@ function renderDayView() {
 
 function renderWeekOverview() {
   const container = $('week-stats');
+  if (!container) return;
   container.innerHTML = '';
+  
   const categoryHours = {};
   Object.keys(CATEGORIES).forEach(cat => { categoryHours[cat] = 0; });
 
@@ -743,40 +1169,62 @@ function renderWeekOverview() {
 // ============== EVENT MODAL ==============
 let editingEventId = null;
 
-function openEventModal(event = null, defaultHour = null) {
-  $('event-modal').style.display = 'flex';
+function openEventModal(event, defaultHour) {
+  const modal = $('event-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
 
   if (event) {
     editingEventId = event.id;
-    $('modal-title').textContent = 'Chỉnh sửa sự kiện';
-    $('event-id').value = event.id;
-    $('event-title').value = event.title;
-    $('event-date').value = formatDate(state.selectedDate);
-    $('event-start').value = event.startTime;
-    $('event-end').value = event.endTime;
-    $('event-notes').value = event.notes || '';
-    $('modal-delete-btn').style.display = 'inline-flex';
+    const titleEl = $('modal-title');
+    const idEl = $('event-id');
+    const titleInput = $('event-title');
+    const dateInput = $('event-date');
+    const startInput = $('event-start');
+    const endInput = $('event-end');
+    const notesInput = $('event-notes');
+    const deleteBtn = $('modal-delete-btn');
+    
+    if (titleEl) titleEl.textContent = 'Chỉnh sửa sự kiện';
+    if (idEl) idEl.value = event.id;
+    if (titleInput) titleInput.value = event.title;
+    if (dateInput) dateInput.value = formatDate(state.selectedDate);
+    if (startInput) startInput.value = event.startTime;
+    if (endInput) endInput.value = event.endTime;
+    if (notesInput) notesInput.value = event.notes || '';
+    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
     $$('#event-form .cat-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.cat === event.category));
   } else {
     editingEventId = null;
-    $('modal-title').textContent = 'Thêm sự kiện';
-    $('event-form').reset();
-    $('event-date').value = formatDate(state.selectedDate);
-    $('modal-delete-btn').style.display = 'none';
-    if (defaultHour !== null) {
-      $('event-start').value = `${String(defaultHour).padStart(2, '0')}:00`;
-      $('event-end').value = `${String(Math.min(defaultHour + 2, 23)).padStart(2, '0')}:00`;
+    const titleEl = $('modal-title');
+    const idEl = $('event-id');
+    const form = $('event-form');
+    const dateInput = $('event-date');
+    const deleteBtn = $('modal-delete-btn');
+    const startInput = $('event-start');
+    const endInput = $('event-end');
+    
+    if (titleEl) titleEl.textContent = 'Thêm sự kiện';
+    if (form) form.reset();
+    if (idEl) idEl.value = '';
+    if (dateInput) dateInput.value = formatDate(state.selectedDate);
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (defaultHour !== null && defaultHour !== undefined) {
+      if (startInput) startInput.value = String(defaultHour).padStart(2, '0') + ':00';
+      if (endInput) endInput.value = String(Math.min(defaultHour + 2, 23)).padStart(2, '0') + ':00';
     } else {
-      $('event-start').value = '19:00';
-      $('event-end').value = '21:00';
+      if (startInput) startInput.value = '19:00';
+      if (endInput) endInput.value = '21:00';
     }
     $$('#event-form .cat-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.cat === 'cp'));
   }
-  setTimeout(() => $('event-title').focus(), 100);
+  const titleInput = $('event-title');
+  if (titleInput) setTimeout(() => titleInput.focus(), 100);
 }
 
 function closeEventModal() {
-  $('event-modal').style.display = 'none';
+  const modal = $('event-modal');
+  if (modal) modal.style.display = 'none';
   editingEventId = null;
 }
 
@@ -786,11 +1234,19 @@ function getSelectedCategory() {
 }
 
 function saveEvent() {
-  const title = $('event-title').value.trim();
-  const dateStr = $('event-date').value;
-  const startTime = $('event-start').value;
-  const endTime = $('event-end').value;
-  const notes = $('event-notes').value.trim();
+  const titleInput = $('event-title');
+  const dateInput = $('event-date');
+  const startInput = $('event-start');
+  const endInput = $('event-end');
+  const notesInput = $('event-notes');
+  
+  if (!titleInput || !dateInput || !startInput || !endInput) return;
+  
+  const title = titleInput.value.trim();
+  const dateStr = dateInput.value;
+  const startTime = startInput.value;
+  const endTime = endInput.value;
+  const notes = notesInput ? notesInput.value.trim() : '';
   const category = getSelectedCategory();
 
   if (!title || !dateStr || !startTime || !endTime) {
@@ -811,10 +1267,10 @@ function saveEvent() {
       if (state.events[oldDateStr].length === 0) delete state.events[oldDateStr];
     }
     if (!state.events[dateStr]) state.events[dateStr] = [];
-    state.events[dateStr].push({ id: editingEventId, title, startTime, endTime, category, notes });
+    state.events[dateStr].push({ id: editingEventId, title: title, startTime: startTime, endTime: endTime, category: category, notes: notes });
     showToast('Đã cập nhật sự kiện!', 'success');
   } else {
-    state.events[dateStr].push({ id: generateId(), title, startTime, endTime, category, notes });
+    state.events[dateStr].push({ id: generateId(), title: title, startTime: startTime, endTime: endTime, category: category, notes: notes });
     showToast('Đã thêm sự kiện mới!', 'success');
   }
 
@@ -844,25 +1300,37 @@ function deleteEvent() {
 
 // ============== COPY DAY ==============
 function openCopyModal() {
-  $('copy-modal').style.display = 'flex';
-  $('copy-source').value = formatDate(state.selectedDate);
-  $('copy-target').value = '';
+  const modal = $('copy-modal');
+  const source = $('copy-source');
+  const target = $('copy-target');
+  if (!modal || !source || !target) return;
+  modal.style.display = 'flex';
+  source.value = formatDate(state.selectedDate);
+  target.value = '';
 }
 
-function closeCopyModal() { $('copy-modal').style.display = 'none'; }
+function closeCopyModal() {
+  const modal = $('copy-modal');
+  if (modal) modal.style.display = 'none';
+}
 
 function copyDay() {
-  const source = $('copy-source').value;
-  const target = $('copy-target').value;
-  if (!source || !target) { showToast('Vui lòng chọn cả ngày nguồn và ngày đích', 'error'); return; }
-  if (source === target) { showToast('Ngày nguồn và ngày đích phải khác nhau', 'error'); return; }
-  const sourceEvents = state.events[source] || [];
+  const source = $('copy-source');
+  const target = $('copy-target');
+  if (!source || !target) return;
+  
+  const sourceVal = source.value;
+  const targetVal = target.value;
+  
+  if (!sourceVal || !targetVal) { showToast('Vui lòng chọn cả ngày nguồn và ngày đích', 'error'); return; }
+  if (sourceVal === targetVal) { showToast('Ngày nguồn và ngày đích phải khác nhau', 'error'); return; }
+  const sourceEvents = state.events[sourceVal] || [];
   if (sourceEvents.length === 0) { showToast('Ngày nguồn không có sự kiện nào', 'error'); return; }
-  state.events[target] = sourceEvents.map(e => ({ ...e, id: generateId() }));
+  state.events[targetVal] = sourceEvents.map(e => ({ ...e, id: generateId() }));
   saveSchedule();
   closeCopyModal();
-  showToast(`Đã sao chép ${sourceEvents.length} sự kiện!`, 'success');
-  state.selectedDate = parseDate(target);
+  showToast('Đã sao chép ' + sourceEvents.length + ' sự kiện!', 'success');
+  state.selectedDate = parseDate(targetVal);
   state.weekStart = getMonday(state.selectedDate);
   renderWeekHeader();
   renderDayView();
@@ -873,7 +1341,7 @@ function clearDay() {
   const dateKey = formatDate(state.selectedDate);
   const events = state.events[dateKey] || [];
   if (events.length === 0) { showToast('Ngày này không có sự kiện nào', 'info'); return; }
-  if (!confirm(`Xóa tất cả ${events.length} sự kiện trong ngày ${formatDateVi(dateKey)}?`)) return;
+  if (!confirm('Xóa tất cả ' + events.length + ' sự kiện trong ngày ' + formatDateVi(dateKey) + '?')) return;
   delete state.events[dateKey];
   saveSchedule();
   showToast('Đã xóa tất cả sự kiện trong ngày', 'info');
@@ -910,41 +1378,48 @@ function getAllTemplates() {
 
 function openTemplateModal() {
   state.selectedTemplateId = null;
-  $('template-modal').style.display = 'flex';
-  $('template-target-date').textContent = formatDateVi(formatDate(state.selectedDate));
-  $('template-apply-btn').disabled = true;
-  $('template-preview').style.display = 'none';
+  const modal = $('template-modal');
+  const targetDate = $('template-target-date');
+  const applyBtn = $('template-apply-btn');
+  const preview = $('template-preview');
+  
+  if (!modal) return;
+  modal.style.display = 'flex';
+  if (targetDate) targetDate.textContent = formatDateVi(formatDate(state.selectedDate));
+  if (applyBtn) applyBtn.disabled = true;
+  if (preview) preview.style.display = 'none';
   renderTemplateGrid();
 }
 
 function closeTemplateModal() {
-  $('template-modal').style.display = 'none';
+  const modal = $('template-modal');
+  if (modal) modal.style.display = 'none';
   state.selectedTemplateId = null;
 }
 
 function renderTemplateGrid() {
   const container = $('template-grid');
+  if (!container) return;
   container.innerHTML = '';
   const templates = getAllTemplates();
 
   templates.forEach(tmpl => {
     const card = document.createElement('div');
-    card.className = `template-card${state.selectedTemplateId === tmpl.id ? ' selected' : ''}`;
+    card.className = 'template-card' + (state.selectedTemplateId === tmpl.id ? ' selected' : '');
     card.innerHTML = `
       <span class="template-card-icon">${tmpl.icon || '📄'}</span>
-      <div class="template-card-name">${tmpl.name}</div>
+      <div class="template-card-name">${sanitizeInput(tmpl.name)}</div>
       <div class="template-card-count">${tmpl.events.length} sự kiện</div>
-      ${!tmpl.builtin ? `<button class="template-delete-btn" data-tmpl-id="${tmpl.id}">Xóa template</button>` : ''}`;
+      ${!tmpl.builtin ? '<button class="template-delete-btn" data-tmpl-id="' + tmpl.id + '">Xóa template</button>' : ''}`;
 
-    card.addEventListener('click', (e) => {
+    card.addEventListener('click', function(e) {
       if (e.target.classList.contains('template-delete-btn')) return;
       selectTemplate(tmpl.id);
     });
 
-    // Delete button for custom templates
     const delBtn = card.querySelector('.template-delete-btn');
     if (delBtn) {
-      delBtn.addEventListener('click', (e) => {
+      delBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         deleteCustomTemplate(tmpl.id);
       });
@@ -956,32 +1431,34 @@ function renderTemplateGrid() {
 
 function selectTemplate(templateId) {
   state.selectedTemplateId = templateId;
-  $('template-apply-btn').disabled = false;
+  const applyBtn = $('template-apply-btn');
+  if (applyBtn) applyBtn.disabled = false;
 
-  // Highlight selected
   $$('.template-card').forEach(c => c.classList.remove('selected'));
   const allTemplates = getAllTemplates();
   const idx = allTemplates.findIndex(t => t.id === templateId);
-  if (idx >= 0) {
-    $('template-grid').children[idx]?.classList.add('selected');
+  const grid = $('template-grid');
+  if (grid && idx >= 0) {
+    const children = grid.children;
+    if (children[idx]) children[idx].classList.add('selected');
   }
 
-  // Show preview
   const template = allTemplates.find(t => t.id === templateId);
   if (template) {
-    $('template-preview').style.display = 'block';
+    const preview = $('template-preview');
     const list = $('template-events-list');
-    list.innerHTML = '';
-    template.events.forEach(ev => {
-      const catInfo = CATEGORIES[ev.category] || CATEGORIES.other;
-      const item = document.createElement('div');
-      item.className = 'template-event-item';
-      item.style.borderLeftColor = catInfo.color;
-      item.innerHTML = `
-        <span class="te-time">${ev.startTime} – ${ev.endTime}</span>
-        <span class="te-title">${ev.title}</span>`;
-      list.appendChild(item);
-    });
+    if (preview) preview.style.display = 'block';
+    if (list) {
+      list.innerHTML = '';
+      template.events.forEach(ev => {
+        const catInfo = CATEGORIES[ev.category] || CATEGORIES.other;
+        const item = document.createElement('div');
+        item.className = 'template-event-item';
+        item.style.borderLeftColor = catInfo.color;
+        item.innerHTML = '<span class="te-time">' + ev.startTime + ' – ' + ev.endTime + '</span><span class="te-title">' + sanitizeInput(ev.title) + '</span>';
+        list.appendChild(item);
+      });
+    }
   }
 }
 
@@ -993,7 +1470,7 @@ function applyTemplate() {
   const existing = state.events[dateKey] || [];
 
   if (existing.length > 0) {
-    if (!confirm(`Ngày ${formatDateVi(dateKey)} đã có ${existing.length} sự kiện. Thay thế toàn bộ?`)) return;
+    if (!confirm('Ngày ' + formatDateVi(dateKey) + ' đã có ' + existing.length + ' sự kiện. Thay thế toàn bộ?')) return;
   }
 
   state.events[dateKey] = template.events.map(ev => ({
@@ -1007,7 +1484,7 @@ function applyTemplate() {
 
   saveSchedule();
   closeTemplateModal();
-  showToast(`Đã áp dụng template "${template.name}"!`, 'success');
+  showToast('Đã áp dụng template "' + template.name + '"!', 'success');
   renderWeekHeader();
   renderDayView();
   renderWeekOverview();
@@ -1022,7 +1499,7 @@ function saveCurrentDayAsTemplate() {
     return;
   }
 
-  const name = prompt('Đặt tên cho template:', `Custom - ${formatDateVi(dateKey)}`);
+  const name = prompt('Đặt tên cho template:', 'Custom - ' + formatDateVi(dateKey));
   if (!name) return;
 
   const icon = prompt('Chọn emoji icon (VD: 📚, 🏋️, 🎯):', '📌') || '📌';
@@ -1044,7 +1521,7 @@ function saveCurrentDayAsTemplate() {
   state.customTemplates.push(template);
   saveCustomTemplates();
   renderTemplateGrid();
-  showToast(`Đã lưu template "${name}"!`, 'success');
+  showToast('Đã lưu template "' + name + '"!', 'success');
 }
 
 function deleteCustomTemplate(templateId) {
@@ -1054,8 +1531,10 @@ function deleteCustomTemplate(templateId) {
 
   if (state.selectedTemplateId === templateId) {
     state.selectedTemplateId = null;
-    $('template-apply-btn').disabled = true;
-    $('template-preview').style.display = 'none';
+    const applyBtn = $('template-apply-btn');
+    const preview = $('template-preview');
+    if (applyBtn) applyBtn.disabled = true;
+    if (preview) preview.style.display = 'none';
   }
 
   renderTemplateGrid();
@@ -1071,47 +1550,151 @@ function updateTimeLine() {
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const scheduleStartMin = SCHEDULE_START_HOUR * 60;
-    existingLine.style.top = `${((nowMin - scheduleStartMin) / 60) * 60}px`;
+    existingLine.style.top = ((nowMin - scheduleStartMin) / 60 * 60) + 'px';
   }
+}
+
+// ============== EXPORT/IMPORT DATA ==============
+function exportData() {
+  const data = getBackupData();
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cp-hub-backup-' + formatDate(new Date()) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Đã xuất dữ liệu thành công!', 'success');
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      
+      if (!data.bookmarks && !data.solved && !data.schedule) {
+        throw new Error('Dữ liệu không hợp lệ');
+      }
+      
+      if (!confirm('Import sẽ ghi đè dữ liệu hiện tại. Bạn có chắc?')) return;
+      
+      if (data.bookmarks) {
+        state.bookmarks = new Set(data.bookmarks);
+        saveBookmarks();
+      }
+      
+      if (data.solved) {
+        state.solved = new Set(data.solved);
+        saveSolved();
+      }
+      
+      if (data.schedule) {
+        state.events = data.schedule;
+        saveSchedule();
+        renderWeekHeader();
+        renderDayView();
+        renderWeekOverview();
+      }
+      
+      if (data.customTemplates) {
+        state.customTemplates = data.customTemplates;
+        saveCustomTemplates();
+      }
+      
+      if (data.searchHistory) {
+        state.searchHistory = data.searchHistory;
+        saveSearchHistory();
+      }
+      
+      renderProblems();
+      renderBookmarks();
+      renderSolvedStats();
+      queueDiskSave();
+      showToast('Import dữ liệu thành công!', 'success');
+    } catch (error) {
+      showToast('Lỗi khi import: ' + error.message, 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ============== EVENT LISTENERS ==============
 function initEventListeners() {
   // Navigation
-  $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => navigateTo(btn.dataset.page)));
+  $$('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      navigateTo(this.dataset.page);
+    });
+  });
 
   // Mobile menu
-  $('menu-toggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
-  document.addEventListener('click', (e) => {
+  const menuToggle = $('menu-toggle');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', function() {
+      const sidebar = $('sidebar');
+      if (sidebar) sidebar.classList.toggle('open');
+    });
+  }
+  
+  document.addEventListener('click', function(e) {
     const sidebar = $('sidebar');
-    if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== $('menu-toggle')) {
+    const menuToggle = $('menu-toggle');
+    if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== menuToggle) {
       sidebar.classList.remove('open');
     }
   });
 
   // Theme toggle
-  $('theme-toggle').addEventListener('click', toggleTheme);
+  const themeToggle = $('theme-toggle');
+  if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
   // Problem Finder
-  $('search-btn').addEventListener('click', filterProblems);
-  $('random-btn').addEventListener('click', randomProblem);
-  $('clear-filters-btn').addEventListener('click', clearFilters);
-  $('clear-solved-btn').addEventListener('click', clearSolved);
+  const searchBtn = $('search-btn');
+  const randomBtn = $('random-btn');
+  const clearFiltersBtn = $('clear-filters-btn');
+  const clearSolvedBtn = $('clear-solved-btn');
+  const prevPageBtn = $('prev-page-btn');
+  const nextPageBtn = $('next-page-btn');
+  
+  if (searchBtn) searchBtn.addEventListener('click', function() {
+    const searchInput = $('search-input');
+    if (searchInput) searchProblems(searchInput.value);
+  });
+  if (randomBtn) randomBtn.addEventListener('click', randomProblem);
+  if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearFilters);
+  if (clearSolvedBtn) clearSolvedBtn.addEventListener('click', clearSolved);
 
-  $('prev-page-btn').addEventListener('click', () => {
-    if (state.currentPage > 1) { state.currentPage--; renderProblems(); $('problems-grid').scrollIntoView({ behavior: 'smooth' }); }
-  });
-  $('next-page-btn').addEventListener('click', () => {
-    const totalPages = Math.ceil(state.filteredProblems.length / PROBLEMS_PER_PAGE);
-    if (state.currentPage < totalPages) { state.currentPage++; renderProblems(); $('problems-grid').scrollIntoView({ behavior: 'smooth' }); }
-  });
+  if (prevPageBtn) {
+    prevPageBtn.addEventListener('click', function() {
+      if (state.currentPage > 1) { 
+        state.currentPage--; 
+        renderProblems(); 
+        const grid = $('problems-grid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+  
+  if (nextPageBtn) {
+    nextPageBtn.addEventListener('click', function() {
+      const totalPages = Math.ceil(state.filteredProblems.length / PROBLEMS_PER_PAGE);
+      if (state.currentPage < totalPages) { 
+        state.currentPage++; 
+        renderProblems(); 
+        const grid = $('problems-grid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
   // Sort buttons
   $$('.sort-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.currentSort = btn.dataset.sort;
+    btn.addEventListener('click', function() {
+      state.currentSort = this.dataset.sort;
       $$('.sort-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      this.classList.add('active');
       sortProblems();
       state.currentPage = 1;
       renderProblems();
@@ -1119,87 +1702,215 @@ function initEventListeners() {
   });
 
   // Bookmarks toggle
-  $('toggle-bookmarks-btn').addEventListener('click', () => {
-    const list = $('bookmarks-list');
-    const isHidden = list.style.display === 'none';
-    list.style.display = isHidden ? 'grid' : 'none';
-    $('toggle-bookmarks-btn').textContent = isHidden ? 'Ẩn' : 'Hiện';
-  });
+  const toggleBookmarksBtn = $('toggle-bookmarks-btn');
+  if (toggleBookmarksBtn) {
+    toggleBookmarksBtn.addEventListener('click', function() {
+      const list = $('bookmarks-list');
+      if (!list) return;
+      const isHidden = list.style.display === 'none';
+      list.style.display = isHidden ? 'grid' : 'none';
+      this.textContent = isHidden ? 'Ẩn' : 'Hiện';
+    });
+  }
 
   // Enter key on rating inputs
-  $('rating-min').addEventListener('keydown', (e) => { if (e.key === 'Enter') filterProblems(); });
-  $('rating-max').addEventListener('keydown', (e) => { if (e.key === 'Enter') filterProblems(); });
+  const ratingMin = $('rating-min');
+  const ratingMax = $('rating-max');
+  if (ratingMin) ratingMin.addEventListener('keydown', function(e) { if (e.key === 'Enter') filterProblems(); });
+  if (ratingMax) ratingMax.addEventListener('keydown', function(e) { if (e.key === 'Enter') filterProblems(); });
+
+  // Search input with debounce
+  const searchInput = $('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        searchProblems(this.value);
+      }
+    });
+    
+    searchInput.addEventListener('input', function() {
+      clearTimeout(state.searchTimeout);
+      state.searchTimeout = setTimeout(function() {
+        const query = searchInput.value;
+        if (query.length >= 2 || query.length === 0) {
+          searchProblems(query);
+        }
+      }, 400);
+    });
+    
+    // Focus search on Ctrl+K or Cmd+K
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+  }
 
   // Schedule
-  $('add-event-btn').addEventListener('click', () => openEventModal());
-  $('prev-week-btn').addEventListener('click', prevWeek);
-  $('next-week-btn').addEventListener('click', nextWeek);
-  $('today-btn').addEventListener('click', goToToday);
-  $('copy-day-btn').addEventListener('click', openCopyModal);
-  $('clear-day-btn').addEventListener('click', clearDay);
+  const addEventBtn = $('add-event-btn');
+  const prevWeekBtn = $('prev-week-btn');
+  const nextWeekBtn = $('next-week-btn');
+  const todayBtn = $('today-btn');
+  const copyDayBtn = $('copy-day-btn');
+  const clearDayBtn = $('clear-day-btn');
+  
+  if (addEventBtn) addEventBtn.addEventListener('click', function() { openEventModal(null, null); });
+  if (prevWeekBtn) prevWeekBtn.addEventListener('click', prevWeek);
+  if (nextWeekBtn) nextWeekBtn.addEventListener('click', nextWeek);
+  if (todayBtn) todayBtn.addEventListener('click', goToToday);
+  if (copyDayBtn) copyDayBtn.addEventListener('click', openCopyModal);
+  if (clearDayBtn) clearDayBtn.addEventListener('click', clearDay);
 
   // Templates
-  $('template-btn').addEventListener('click', openTemplateModal);
-  $('template-modal-close').addEventListener('click', closeTemplateModal);
-  $('template-cancel-btn').addEventListener('click', closeTemplateModal);
-  $('template-apply-btn').addEventListener('click', applyTemplate);
-  $('save-as-template-btn').addEventListener('click', saveCurrentDayAsTemplate);
-  $('template-modal').addEventListener('click', (e) => { if (e.target === $('template-modal')) closeTemplateModal(); });
+  const templateBtn = $('template-btn');
+  const templateModalClose = $('template-modal-close');
+  const templateCancelBtn = $('template-cancel-btn');
+  const templateApplyBtn = $('template-apply-btn');
+  const saveAsTemplateBtn = $('save-as-template-btn');
+  const templateModal = $('template-modal');
+  
+  if (templateBtn) templateBtn.addEventListener('click', openTemplateModal);
+  if (templateModalClose) templateModalClose.addEventListener('click', closeTemplateModal);
+  if (templateCancelBtn) templateCancelBtn.addEventListener('click', closeTemplateModal);
+  if (templateApplyBtn) templateApplyBtn.addEventListener('click', applyTemplate);
+  if (saveAsTemplateBtn) saveAsTemplateBtn.addEventListener('click', saveCurrentDayAsTemplate);
+  if (templateModal) {
+    templateModal.addEventListener('click', function(e) { if (e.target === this) closeTemplateModal(); });
+  }
 
   // Event Modal
-  $('modal-close-btn').addEventListener('click', closeEventModal);
-  $('modal-cancel-btn').addEventListener('click', closeEventModal);
-  $('modal-delete-btn').addEventListener('click', deleteEvent);
-  $('event-form').addEventListener('submit', (e) => { e.preventDefault(); saveEvent(); });
+  const modalCloseBtn = $('modal-close-btn');
+  const modalCancelBtn = $('modal-cancel-btn');
+  const modalDeleteBtn = $('modal-delete-btn');
+  const eventForm = $('event-form');
+  const eventModal = $('event-modal');
+  
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeEventModal);
+  if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeEventModal);
+  if (modalDeleteBtn) modalDeleteBtn.addEventListener('click', deleteEvent);
+  if (eventForm) eventForm.addEventListener('submit', function(e) { e.preventDefault(); saveEvent(); });
+  if (eventModal) {
+    eventModal.addEventListener('click', function(e) { if (e.target === this) closeEventModal(); });
+  }
 
   // Category buttons in modal
   $$('#event-form .cat-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', function() {
       $$('#event-form .cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      this.classList.add('active');
     });
   });
 
-  // Close modals on overlay click
-  $('event-modal').addEventListener('click', (e) => { if (e.target === $('event-modal')) closeEventModal(); });
-
   // Copy modal
-  $('copy-modal-close').addEventListener('click', closeCopyModal);
-  $('copy-cancel-btn').addEventListener('click', closeCopyModal);
-  $('copy-confirm-btn').addEventListener('click', copyDay);
-  $('copy-modal').addEventListener('click', (e) => { if (e.target === $('copy-modal')) closeCopyModal(); });
+  const copyModalClose = $('copy-modal-close');
+  const copyCancelBtn = $('copy-cancel-btn');
+  const copyConfirmBtn = $('copy-confirm-btn');
+  const copyModal = $('copy-modal');
+  
+  if (copyModalClose) copyModalClose.addEventListener('click', closeCopyModal);
+  if (copyCancelBtn) copyCancelBtn.addEventListener('click', closeCopyModal);
+  if (copyConfirmBtn) copyConfirmBtn.addEventListener('click', copyDay);
+  if (copyModal) {
+    copyModal.addEventListener('click', function(e) { if (e.target === this) closeCopyModal(); });
+  }
 
-  // Keyboard: Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeEventModal(); closeCopyModal(); closeTemplateModal(); }
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { 
+      closeEventModal(); 
+      closeCopyModal(); 
+      closeTemplateModal(); 
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'r') {
+      e.preventDefault();
+      randomProblem();
+    }
   });
+
+  // Export/Import buttons
+  const exportBtn = $('export-data-btn');
+  const importBtn = $('import-data-btn');
+  const importInput = $('import-file-input');
+  const chooseDataFolderBtn = $('choose-data-folder-btn');
+  const saveToDiskBtn = $('save-to-disk-btn');
+  
+  if (exportBtn) exportBtn.addEventListener('click', exportData);
+  if (chooseDataFolderBtn) chooseDataFolderBtn.addEventListener('click', chooseDataFolder);
+  if (saveToDiskBtn) saveToDiskBtn.addEventListener('click', saveDataToDisk);
+  if (importBtn && importInput) {
+    importBtn.addEventListener('click', function() { importInput.click(); });
+    importInput.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        importData(e.target.files[0]);
+        e.target.value = '';
+      }
+    });
+  }
 }
 
 // ============== INIT ==============
-async function init() {
-  loadTheme();
-  loadBookmarks();
-  loadSolved();
-  loadSchedule();
-  loadCustomTemplates();
-  initEventListeners();
-  initTagsUI();
-  updateStatsBar();
+function init() {
+  try {
+    // Load data from localStorage
+    loadTheme();
+    loadBookmarks();
+    loadSolved();
+    loadSchedule();
+    loadCustomTemplates();
+    loadSearchHistory();
+    restoreDirectoryHandle();
+    
+    // Init UI
+    initEventListeners();
+    initTagsUI();
+    updateStatsBar();
+    initSchedule();
 
-  initSchedule();
+    // Load problems
+    fetchProblems().then(function() {
+      if (state.allProblems.length > 0) {
+        state.filteredProblems = [...state.allProblems];
+        sortProblems();
+        renderProblems();
+        renderBookmarks();
+        renderSolvedStats();
+        const ojName = OJ_CONFIGS.codeforces.name;
+        showToast('Đã tải ' + state.allProblems.length + ' bài tập từ ' + ojName, 'success');
+      }
+    });
 
-  await fetchProblems();
+    // Auto-refresh Codeforces data every 5 minutes
+    setInterval(function() {
+      fetchCodeforcesProblems().then(function(problems) {
+        if (problems && problems.length > 0) {
+          state.allProblems = problems;
+          filterProblems();
+          renderTagsUI();
+        }
+      });
+    }, 5 * 60 * 1000);
 
-  if (state.allProblems.length > 0) {
-    state.filteredProblems = [...state.allProblems];
-    sortProblems();
-    renderProblems();
-    renderBookmarks();
-    renderSolvedStats();
-    showToast(`Đã tải ${state.allProblems.length} bài tập từ Codeforces`, 'success');
+    // Update timeline every minute
+    setInterval(updateTimeLine, 60000);
+    
+    console.log('🔑 Keyboard shortcuts:');
+    console.log('  Ctrl+K - Focus search');
+    console.log('  Ctrl+Shift+R - Random problem');
+    console.log('  Escape - Close modals');
+    
+  } catch (error) {
+    console.error('Init error:', error);
+    showToast('Lỗi khởi tạo ứng dụng. Vui lòng tải lại trang.', 'error');
   }
-
-  setInterval(updateTimeLine, 60000);
 }
 
+// Export functions for HTML onclick
+window.clearFilters = clearFilters;
+window.randomProblem = randomProblem;
+window.exportData = exportData;
+window.importData = importData;
+
+// Start app
 document.addEventListener('DOMContentLoaded', init);
