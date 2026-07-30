@@ -1188,6 +1188,35 @@ h3 {
   z-index: 3;
 }
 
+.event-block.is-completed {
+  opacity: 0.58;
+  filter: saturate(0.55);
+}
+
+.event-block.is-completed .event-title {
+  text-decoration: line-through;
+}
+
+.event-complete-btn {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.event-complete-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.event-block .event-title { padding-right: 24px; }
+
 .event-block.cat-cp {
   background: rgba(0, 212, 255, 0.12);
   border-left-color: var(--cat-cp);

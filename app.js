@@ -1046,10 +1046,11 @@ function renderWeekHeader() {
     const tab = document.createElement('div');
     tab.className = 'day-tab' + (isActive ? ' active' : '') + (isTodayDate ? ' today' : '');
     tab.dataset.date = dateKey;
+    const completedCount = events.filter(event => event.completed).length;
     tab.innerHTML = `
       <span class="day-tab-name">${DAY_NAMES_VI[date.getDay()]}</span>
       <span class="day-tab-date">${date.getDate()}</span>
-      <span class="day-tab-count">${events.length > 0 ? events.length + ' sự kiện' : '—'}</span>`;
+      <span class="day-tab-count">${events.length > 0 ? completedCount + '/' + events.length + ' hoàn thành' : '—'}</span>`;
 
     tab.addEventListener('click', function() {
       state.selectedDate = parseDate(this.dataset.date);
@@ -1099,14 +1100,19 @@ function renderDayView() {
     const height = Math.max(((endMin - startMin) / 60) * 60, 28);
 
     const block = document.createElement('div');
-    block.className = 'event-block cat-' + event.category;
+    block.className = 'event-block cat-' + event.category + (event.completed ? ' is-completed' : '');
     block.style.top = top + 'px';
     block.style.height = height + 'px';
     block.innerHTML = `
+      <button class="event-complete-btn" type="button" aria-label="${event.completed ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu hoàn thành'}" title="${event.completed ? 'Bỏ tick' : 'Đánh dấu hoàn thành'}">${event.completed ? '✓' : ''}</button>
       <div class="event-title">${sanitizeInput(event.title)}</div>
       ${height >= 40 ? '<div class="event-time">' + event.startTime + ' - ' + event.endTime + '</div>' : ''}
       ${height >= 56 && event.notes ? '<div class="event-notes-preview">' + sanitizeInput(event.notes) + '</div>' : ''}`;
 
+    block.querySelector('.event-complete-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleEventCompletion(dateKey, event.id);
+    });
     block.addEventListener('click', function(e) { 
       e.stopPropagation(); 
       openEventModal(event); 
@@ -1125,6 +1131,17 @@ function renderDayView() {
       eventsCol.appendChild(line);
     }
   }
+}
+
+function toggleEventCompletion(dateKey, eventId) {
+  const event = (state.events[dateKey] || []).find(item => item.id === eventId);
+  if (!event) return;
+  event.completed = !event.completed;
+  saveSchedule();
+  renderWeekHeader();
+  renderDayView();
+  renderWeekOverview();
+  showToast(event.completed ? 'Đã đánh dấu hoàn thành ✓' : 'Đã bỏ đánh dấu hoàn thành', 'success');
 }
 
 function renderWeekOverview() {
@@ -1262,15 +1279,16 @@ function saveEvent() {
 
   if (editingEventId) {
     const oldDateStr = formatDate(state.selectedDate);
+    const existingEvent = (state.events[oldDateStr] || []).find(e => e.id === editingEventId);
     if (state.events[oldDateStr]) {
       state.events[oldDateStr] = state.events[oldDateStr].filter(e => e.id !== editingEventId);
       if (state.events[oldDateStr].length === 0) delete state.events[oldDateStr];
     }
     if (!state.events[dateStr]) state.events[dateStr] = [];
-    state.events[dateStr].push({ id: editingEventId, title: title, startTime: startTime, endTime: endTime, category: category, notes: notes });
+    state.events[dateStr].push({ id: editingEventId, title: title, startTime: startTime, endTime: endTime, category: category, notes: notes, completed: Boolean(existingEvent && existingEvent.completed) });
     showToast('Đã cập nhật sự kiện!', 'success');
   } else {
-    state.events[dateStr].push({ id: generateId(), title: title, startTime: startTime, endTime: endTime, category: category, notes: notes });
+    state.events[dateStr].push({ id: generateId(), title: title, startTime: startTime, endTime: endTime, category: category, notes: notes, completed: false });
     showToast('Đã thêm sự kiện mới!', 'success');
   }
 
@@ -1326,7 +1344,7 @@ function copyDay() {
   if (sourceVal === targetVal) { showToast('Ngày nguồn và ngày đích phải khác nhau', 'error'); return; }
   const sourceEvents = state.events[sourceVal] || [];
   if (sourceEvents.length === 0) { showToast('Ngày nguồn không có sự kiện nào', 'error'); return; }
-  state.events[targetVal] = sourceEvents.map(e => ({ ...e, id: generateId() }));
+  state.events[targetVal] = sourceEvents.map(e => ({ ...e, id: generateId(), completed: false }));
   saveSchedule();
   closeCopyModal();
   showToast('Đã sao chép ' + sourceEvents.length + ' sự kiện!', 'success');
@@ -1480,6 +1498,7 @@ function applyTemplate() {
     endTime: ev.endTime,
     category: ev.category,
     notes: ev.notes || '',
+    completed: false,
   }));
 
   saveSchedule();
