@@ -34,7 +34,22 @@
           <span class="nav-label">Schedule</span>
         </button>
       </li>
+      <li>
+        <button class="nav-btn" data-page="contest" id="nav-contest">
+          <span class="nav-icon">🏁</span>
+          <span class="nav-label">Virtual Contest</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-btn" data-page="progress" id="nav-progress">
+          <span class="nav-icon">📈</span>
+          <span class="nav-label">Progress</span>
+        </button>
+      </li>
     </ul>
+    <div class="sidebar-cmd-hint">
+      <button class="cmd-hint-btn" id="open-cmd-palette-btn">⌘ Command Palette <span>Ctrl+Shift+P</span></button>
+    </div>
     <div class="sidebar-footer">
       <div class="stats-mini" id="stats-mini">
         <div class="stat-item">
@@ -175,6 +190,14 @@
         <span class="disk-storage-status" id="disk-storage-status">Dữ liệu đang lưu trên trình duyệt</span>
       </div>
 
+      <!-- CF Handle Sync -->
+      <div class="cf-sync-row">
+        <span class="cf-sync-icon">🔄</span>
+        <input type="text" id="cf-handle-input" placeholder="Nhập Codeforces handle (VD: tourist)">
+        <button class="btn btn-accent" id="cf-sync-btn">Đồng bộ bài đã AC</button>
+        <span class="cf-sync-status" id="cf-sync-status"></span>
+      </div>
+
       <!-- Bookmarks -->
       <div class="bookmarks-section" id="bookmarks-section">
         <div class="section-header" id="bookmarks-toggle">
@@ -237,6 +260,83 @@
         <h3>📊 Tổng quan tuần</h3>
         <div class="week-stats" id="week-stats">
           <!-- Stats injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== VIRTUAL CONTEST PAGE ===================== -->
+    <section class="page" id="contest-page">
+      <div class="page-header">
+        <h1>Virtual Contest Mode</h1>
+        <p class="page-subtitle">Tự luyện thi đấu — random đề tăng dần độ khó, đồng hồ đếm ngược, kết quả cuối cùng</p>
+      </div>
+
+      <div id="contest-setup" class="contest-setup">
+        <div class="filters-row">
+          <div class="filter-group">
+            <label for="contest-count">Số bài (A→F)</label>
+            <input type="number" id="contest-count" min="2" max="6" value="4">
+          </div>
+          <div class="filter-group">
+            <label for="contest-duration">Thời gian (phút)</label>
+            <input type="number" id="contest-duration" min="10" max="240" value="120">
+          </div>
+          <div class="filter-group">
+            <label for="contest-rating-start">Rating khởi điểm (bài A)</label>
+            <input type="number" id="contest-rating-start" min="800" max="3500" step="100" value="1000">
+          </div>
+          <div class="filter-group">
+            <label for="contest-rating-step">Bước tăng rating mỗi bài</label>
+            <input type="number" id="contest-rating-step" min="100" max="500" step="100" value="200">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="contest-start-btn">🏁 Bắt đầu Virtual Contest</button>
+        <div class="contest-history" id="contest-history"></div>
+      </div>
+
+      <div id="contest-active" class="contest-active" style="display:none;">
+        <div class="contest-timer" id="contest-timer">00:00:00</div>
+        <div class="contest-problems" id="contest-problems"></div>
+        <button class="btn btn-danger" id="contest-end-btn">🏳️ Kết thúc contest</button>
+      </div>
+
+      <div id="contest-result" class="contest-result" style="display:none;"></div>
+    </section>
+
+    <!-- ===================== PROGRESS PAGE ===================== -->
+    <section class="page" id="progress-page">
+      <div class="page-header">
+        <h1>Progress</h1>
+        <p class="page-subtitle">Rating ước tính, mục tiêu dài hạn, huy hiệu thành tích</p>
+      </div>
+
+      <div class="progress-grid">
+        <div class="progress-card">
+          <h3>📈 Rating ước tính theo thời gian</h3>
+          <div id="rating-chart-container"></div>
+          <div class="rating-current" id="rating-current-value"></div>
+        </div>
+
+        <div class="progress-card">
+          <h3>🎯 Mục tiêu dài hạn</h3>
+          <div class="goal-add-row">
+            <input type="text" id="goal-text" placeholder="VD: Đạt rating 1800 / Học xong Segment Tree">
+            <input type="number" id="goal-target-rating" placeholder="Rating mục tiêu (tùy chọn)" min="800" max="3500" step="100">
+            <input type="date" id="goal-deadline">
+            <button class="btn btn-primary" id="goal-add-btn">+ Thêm mục tiêu</button>
+          </div>
+          <div class="goal-list" id="goal-list"></div>
+        </div>
+
+        <div class="progress-card">
+          <h3>🏆 Huy hiệu thành tích</h3>
+          <div class="badge-grid" id="badge-grid"></div>
+        </div>
+
+        <div class="progress-card">
+          <h3>📤 Báo cáo tuần</h3>
+          <p class="page-subtitle" style="margin-bottom:12px;">Xuất ảnh tổng kết tuần để lưu hoặc chia sẻ</p>
+          <button class="btn btn-accent" id="export-report-btn">🖼️ Xuất báo cáo tuần dạng ảnh</button>
         </div>
       </div>
     </section>
@@ -337,6 +437,25 @@
           <button class="btn btn-primary" id="template-apply-btn" disabled>✨ Áp dụng</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Similar Problems Modal -->
+  <div class="modal-overlay" id="similar-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>🔗 Bài tương tự</h2>
+        <button class="modal-close" id="similar-modal-close">✕</button>
+      </div>
+      <div class="similar-list" id="similar-list"></div>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="cmd-palette-overlay" id="cmd-palette-overlay" style="display:none;">
+    <div class="cmd-palette">
+      <input type="text" id="cmd-palette-input" placeholder="Gõ lệnh... (VD: schedule, random, theme, export)" autocomplete="off">
+      <div class="cmd-palette-list" id="cmd-palette-list"></div>
     </div>
   </div>
 

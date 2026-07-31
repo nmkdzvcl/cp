@@ -102,6 +102,9 @@ const STORAGE_KEYS = {
   selectedOJ: 'cpHub_selectedOJ',
   searchHistory: 'cpHub_searchHistory',
   problemsCache: 'cpHub_problemsCache',
+  solvedLog: 'cpHub_solvedLog',
+  goals: 'cpHub_goals',
+  contestHistory: 'cpHub_contestHistory',
 };
 const CACHE_DURATION = 30 * 60 * 1000;
 const PROBLEMS_PER_PAGE = 24;
@@ -192,6 +195,11 @@ const state = {
   diskDirectoryHandle: null,
   diskSaveTimeout: null,
   useIndexedDB: true,
+  // v5 additions
+  solvedLog: [],      // [{id, rating, ts}] chronological solve log (dùng cho rating chart + streak)
+  goals: [],          // [{id, text, targetRating, deadline, done, createdAt}]
+  contestHistory: [], // [{id, date, count, durationSec, solvedCount, ratings:[], solveTimes:[]}]
+  activeContest: null, // {problems:[], startTime, durationSec, solved:{id:timeSec}, timerHandle}
 };
 
 // ============== UTILITIES ==============
@@ -284,13 +292,16 @@ const DISK_HANDLE_DB = 'cpHubDiskStorage';
 
 function getBackupData() {
   return {
-    version: '1.1',
+    version: '1.2',
     exportedAt: new Date().toISOString(),
     bookmarks: [...state.bookmarks],
     solved: [...state.solved],
     schedule: state.events,
     customTemplates: state.customTemplates,
     searchHistory: state.searchHistory,
+    solvedLog: state.solvedLog,
+    goals: state.goals,
+    contestHistory: state.contestHistory,
   };
 }
 
@@ -531,6 +542,39 @@ function saveSearchHistory() {
   queueDiskSave();
 }
 
+function loadSolvedLog() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.solvedLog);
+    state.solvedLog = data ? JSON.parse(data) : [];
+  } catch { state.solvedLog = []; }
+}
+function saveSolvedLog() {
+  localStorage.setItem(STORAGE_KEYS.solvedLog, JSON.stringify(state.solvedLog));
+  queueDiskSave();
+}
+
+function loadGoals() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.goals);
+    state.goals = data ? JSON.parse(data) : [];
+  } catch { state.goals = []; }
+}
+function saveGoals() {
+  localStorage.setItem(STORAGE_KEYS.goals, JSON.stringify(state.goals));
+  queueDiskSave();
+}
+
+function loadContestHistory() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.contestHistory);
+    state.contestHistory = data ? JSON.parse(data) : [];
+  } catch { state.contestHistory = []; }
+}
+function saveContestHistory() {
+  localStorage.setItem(STORAGE_KEYS.contestHistory, JSON.stringify(state.contestHistory));
+  queueDiskSave();
+}
+
 // ============== NAVIGATION ==============
 function navigateTo(pageName) {
   state.currentPageName = pageName;
@@ -540,6 +584,8 @@ function navigateTo(pageName) {
   if (sidebar && sidebar.classList.contains('open')) {
     sidebar.classList.remove('open');
   }
+  if (pageName === 'progress') renderProgressPage();
+  if (pageName === 'contest') renderContestHistoryList();
 }
 
 // ============== STATS BAR ==============
@@ -911,6 +957,7 @@ function createProblemCard(problem) {
         <button class="bookmark-btn ' + (isBookmarked ? 'bookmarked' : '') + '" data-problem-id="' + problem.id + '" title="Bookmark">
           ${isBookmarked ? '⭐' : '☆'}
         </button>
+        <button class="similar-btn" data-problem-id="${problem.id}" title="Xem bài tương tự">🔗</button>
       </div>
     </div>`;
 
@@ -924,7 +971,62 @@ function createProblemCard(problem) {
     toggleBookmark(problem.id, this);
   });
 
+  card.querySelector('.similar-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    openSimilarModal(problem);
+  });
+
   return card;
+}
+
+// ============================================================
+//  SIMILAR PROBLEMS
+// ============================================================
+function findSimilarProblems(problem, limit) {
+  limit = limit || 6;
+  return state.allProblems
+    .filter(p => p.id !== problem.id)
+    .map(p => {
+      const overlap = p.tags.filter(t => problem.tags.includes(t)).length;
+      const ratingDiff = Math.abs((p.rating || 0) - (problem.rating || 0));
+      return { p, overlap, ratingDiff };
+    })
+    .filter(x => x.overlap > 0 && x.ratingDiff <= 300)
+    .sort((a, b) => (b.overlap - a.overlap) || (a.ratingDiff - b.ratingDiff))
+    .slice(0, limit)
+    .map(x => x.p);
+}
+
+function openSimilarModal(problem) {
+  const modal = $('similar-modal');
+  const list = $('similar-list');
+  if (!modal || !list) return;
+  const similar = findSimilarProblems(problem);
+  list.innerHTML = '';
+  if (similar.length === 0) {
+    list.innerHTML = '<p class="bookmarks-empty">Không tìm thấy bài tương tự (cùng tag, rating gần).</p>';
+  } else {
+    similar.forEach(p => {
+      const row = document.createElement('a');
+      row.className = 'similar-item';
+      row.href = p.url;
+      row.target = '_blank';
+      row.rel = 'noopener noreferrer';
+      row.style.setProperty('--card-accent', getRatingColor(p.rating));
+      row.innerHTML = `
+        <span class="similar-item-id">${sanitizeInput(p.contestId + '' + p.index)}</span>
+        <span class="similar-item-name">${sanitizeInput(p.name)}</span>
+        <span class="similar-item-rating" style="color:${getRatingColor(p.rating)}">${p.rating}</span>
+        <span class="similar-item-tags">${p.tags.slice(0, 3).map(t => sanitizeInput(t)).join(', ')}</span>`;
+      list.appendChild(row);
+    });
+  }
+  modal.style.display = 'flex';
+}
+
+function closeSimilarModal() {
+  const modal = $('similar-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 function toggleSolvedProblem(problemId, btnEl, cardEl) {
@@ -935,6 +1037,8 @@ function toggleSolvedProblem(problemId, btnEl, cardEl) {
     btnEl.title = 'Bỏ đánh dấu đã giải';
     cardEl.classList.remove('is-solved');
     showToast('Đã bỏ đánh dấu', 'info');
+    state.solvedLog = state.solvedLog.filter(l => l.id !== problemId);
+    saveSolvedLog();
   } else {
     state.solved.add(problemId);
     btnEl.classList.add('solved');
@@ -942,8 +1046,20 @@ function toggleSolvedProblem(problemId, btnEl, cardEl) {
     btnEl.title = 'Bỏ đánh dấu đã giải';
     cardEl.classList.add('is-solved');
     showToast('✅ Đã giải! Tuyệt vời!', 'success');
+    logSolve(problemId, Date.now());
   }
   saveSolved();
+  checkAchievements();
+}
+
+// Ghi 1 lần giải bài vào solvedLog (bỏ qua nếu problemId đã có log)
+function logSolve(problemId, ts) {
+  if (state.solvedLog.some(l => l.id === problemId)) return;
+  const problem = state.allProblems.find(p => p.id === problemId);
+  state.solvedLog.push({ id: problemId, rating: problem ? problem.rating : 0, ts: ts });
+  state.solvedLog.sort((a, b) => a.ts - b.ts);
+  saveSolvedLog();
+  renderProgressPage();
 }
 
 function toggleBookmark(problemId, btnEl) {
@@ -1626,10 +1742,15 @@ function importData(file) {
         state.searchHistory = data.searchHistory;
         saveSearchHistory();
       }
-      
+
+      if (data.solvedLog) { state.solvedLog = data.solvedLog; saveSolvedLog(); }
+      if (data.goals) { state.goals = data.goals; saveGoals(); }
+      if (data.contestHistory) { state.contestHistory = data.contestHistory; saveContestHistory(); }
+
       renderProblems();
       renderBookmarks();
       renderSolvedStats();
+      renderProgressPage();
       queueDiskSave();
       showToast('Import dữ liệu thành công!', 'success');
     } catch (error) {
@@ -1637,6 +1758,520 @@ function importData(file) {
     }
   };
   reader.readAsText(file);
+}
+
+// ============================================================
+//  CF HANDLE SYNC
+// ============================================================
+function syncCfHandle() {
+  const input = $('cf-handle-input');
+  const status = $('cf-sync-status');
+  const handle = input ? input.value.trim() : '';
+  if (!handle) { showToast('Vui lòng nhập Codeforces handle', 'error'); return; }
+  if (status) status.textContent = 'Đang đồng bộ...';
+
+  fetch('https://codeforces.com/api/user.status?handle=' + encodeURIComponent(handle))
+    .then(r => r.json())
+    .then(data => {
+      if (data.status !== 'OK') throw new Error(data.comment || 'Không tìm thấy handle');
+      let added = 0;
+      data.result.forEach(sub => {
+        if (sub.verdict !== 'OK' || !sub.problem) return;
+        const id = '' + sub.problem.contestId + sub.problem.index;
+        if (!state.solved.has(id)) {
+          state.solved.add(id);
+          added++;
+        }
+        if (!state.solvedLog.some(l => l.id === id)) {
+          state.solvedLog.push({ id: id, rating: sub.problem.rating || 0, ts: sub.creationTimeSeconds * 1000 });
+        }
+      });
+      state.solvedLog.sort((a, b) => a.ts - b.ts);
+      saveSolved();
+      saveSolvedLog();
+      renderProblems();
+      renderBookmarks();
+      renderSolvedStats();
+      renderProgressPage();
+      checkAchievements();
+      if (status) status.textContent = 'Đã đồng bộ ' + added + ' bài mới AC từ ' + handle;
+      showToast('Đồng bộ CF thành công! +' + added + ' bài', 'success');
+    })
+    .catch(error => {
+      if (status) status.textContent = 'Lỗi: ' + error.message;
+      showToast('Không thể đồng bộ: ' + error.message, 'error');
+    });
+}
+
+// ============================================================
+//  DIFFICULTY PREDICTION (rating ước tính)
+// ============================================================
+function computeRatingHistory() {
+  // Elo-đơn giản: bắt đầu 800, mỗi bài giải kéo rating ước tính về phía rating bài đó.
+  let est = 800;
+  const history = [est];
+  state.solvedLog.forEach(entry => {
+    const k = entry.rating >= est ? 0.12 : 0.05;
+    est = est + k * (entry.rating - est);
+    history.push(Math.round(est));
+  });
+  return history;
+}
+
+function computeStreak() {
+  if (state.solvedLog.length === 0) return 0;
+  const days = new Set(state.solvedLog.map(l => formatDate(new Date(l.ts))));
+  let streak = 0;
+  let cursor = new Date(); cursor.setHours(0, 0, 0, 0);
+  // Nếu hôm nay chưa giải bài nào, vẫn cho phép tính từ hôm qua (không mất streak vì chưa hết ngày)
+  if (!days.has(formatDate(cursor))) cursor = addDays(cursor, -1);
+  while (days.has(formatDate(cursor))) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}
+
+function renderRatingChart() {
+  const container = $('rating-chart-container');
+  const valueEl = $('rating-current-value');
+  if (!container) return;
+  const history = computeRatingHistory();
+  const current = history[history.length - 1];
+  if (valueEl) {
+    const streak = computeStreak();
+    valueEl.innerHTML = 'Rating ước tính hiện tại: <strong style="color:' + getRatingColor(current) + '">' + current + '</strong>' +
+      ' &nbsp;•&nbsp; 🔥 Streak: <strong>' + streak + ' ngày</strong>' +
+      ' &nbsp;•&nbsp; Đã giải: <strong>' + state.solvedLog.length + '</strong> bài';
+  }
+  if (history.length < 2) {
+    container.innerHTML = '<p class="bookmarks-empty">Chưa đủ dữ liệu — giải vài bài để xem biểu đồ nhé.</p>';
+    return;
+  }
+  const w = 640, h = 200, pad = 30;
+  const minR = Math.min(...history) - 50;
+  const maxR = Math.max(...history) + 50;
+  const points = history.map((v, i) => {
+    const x = pad + (i / (history.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - minR) / (maxR - minR)) * (h - pad * 2);
+    return x + ',' + y;
+  }).join(' ');
+  container.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" class="rating-chart-svg">
+      <polyline points="${points}" fill="none" stroke="var(--accent-cyan)" stroke-width="2.5" />
+      <circle cx="${points.split(' ').pop().split(',')[0]}" cy="${points.split(' ').pop().split(',')[1]}" r="4" fill="var(--accent-cyan)" />
+    </svg>`;
+}
+
+// ============================================================
+//  GOAL TRACKER
+// ============================================================
+function addGoal() {
+  const textInput = $('goal-text');
+  const ratingInput = $('goal-target-rating');
+  const deadlineInput = $('goal-deadline');
+  const text = textInput ? textInput.value.trim() : '';
+  if (!text) { showToast('Vui lòng nhập nội dung mục tiêu', 'error'); return; }
+
+  state.goals.push({
+    id: generateId(),
+    text: text,
+    targetRating: ratingInput && ratingInput.value ? parseInt(ratingInput.value) : null,
+    deadline: deadlineInput ? deadlineInput.value : '',
+    done: false,
+    createdAt: Date.now(),
+  });
+  saveGoals();
+  if (textInput) textInput.value = '';
+  if (ratingInput) ratingInput.value = '';
+  if (deadlineInput) deadlineInput.value = '';
+  renderGoals();
+  showToast('Đã thêm mục tiêu!', 'success');
+}
+
+function toggleGoalDone(goalId) {
+  const goal = state.goals.find(g => g.id === goalId);
+  if (!goal) return;
+  goal.done = !goal.done;
+  saveGoals();
+  renderGoals();
+  checkAchievements();
+}
+
+function deleteGoal(goalId) {
+  state.goals = state.goals.filter(g => g.id !== goalId);
+  saveGoals();
+  renderGoals();
+}
+
+function renderGoals() {
+  const list = $('goal-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (state.goals.length === 0) {
+    list.innerHTML = '<p class="bookmarks-empty">Chưa có mục tiêu nào. Thêm 1 mục tiêu để theo dõi tiến độ.</p>';
+    return;
+  }
+  const currentRating = computeRatingHistory().pop();
+  state.goals.slice().reverse().forEach(goal => {
+    let progress = goal.done ? 100 : 0;
+    if (!goal.done && goal.targetRating) {
+      progress = Math.max(0, Math.min(100, Math.round((currentRating / goal.targetRating) * 100)));
+    }
+    const item = document.createElement('div');
+    item.className = 'goal-item' + (goal.done ? ' done' : '');
+    const deadlineTxt = goal.deadline ? 'Hạn: ' + formatDateVi(goal.deadline) : '';
+    item.innerHTML = `
+      <div class="goal-item-top">
+        <span class="goal-text">${sanitizeInput(goal.text)}</span>
+        <span class="goal-deadline">${deadlineTxt}</span>
+      </div>
+      <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${progress}%"></div></div>
+      <div class="goal-item-actions">
+        <span class="goal-progress-label">${progress}%</span>
+        <button class="btn btn-ghost btn-sm goal-done-btn">${goal.done ? '↺ Bỏ hoàn thành' : '✓ Hoàn thành'}</button>
+        <button class="btn btn-ghost btn-sm goal-del-btn">🗑️</button>
+      </div>`;
+    item.querySelector('.goal-done-btn').addEventListener('click', () => toggleGoalDone(goal.id));
+    item.querySelector('.goal-del-btn').addEventListener('click', () => deleteGoal(goal.id));
+    list.appendChild(item);
+  });
+}
+
+// ============================================================
+//  ACHIEVEMENT / BADGE SYSTEM
+// ============================================================
+const BADGE_DEFS = [
+  { id: 'first_blood', icon: '🩸', name: 'First Blood', desc: 'Giải bài đầu tiên', check: s => s.solved.size >= 1 },
+  { id: 'solved_10', icon: '🔟', name: 'Khởi động', desc: 'Giải 10 bài', check: s => s.solved.size >= 10 },
+  { id: 'solved_50', icon: '🏅', name: 'Chăm chỉ', desc: 'Giải 50 bài', check: s => s.solved.size >= 50 },
+  { id: 'solved_100', icon: '🏆', name: 'Cỗ máy giải đề', desc: 'Giải 100 bài', check: s => s.solved.size >= 100 },
+  { id: 'streak_7', icon: '🔥', name: 'Streak 7 ngày', desc: '7 ngày liên tiếp có giải bài', check: () => computeStreak() >= 7 },
+  { id: 'streak_30', icon: '🔥🔥', name: 'Streak 30 ngày', desc: '30 ngày liên tiếp có giải bài', check: () => computeStreak() >= 30 },
+  { id: 'hard_2000', icon: '💎', name: 'Đỉnh cao', desc: 'Giải 1 bài rating ≥2000', check: s => s.solvedLog.some(l => l.rating >= 2000) },
+  { id: 'bookmarker', icon: '📌', name: 'Nhà sưu tầm', desc: 'Bookmark 20 bài', check: s => s.bookmarks.size >= 20 },
+  { id: 'goal_setter', icon: '🎯', name: 'Người có mục tiêu', desc: 'Hoàn thành 1 mục tiêu', check: s => s.goals.some(g => g.done) },
+  { id: 'contestant', icon: '🏁', name: 'Chiến binh Contest', desc: 'Hoàn thành 1 Virtual Contest', check: s => s.contestHistory.length >= 1 },
+];
+
+function checkAchievements() {
+  const unlockedBefore = new Set((JSON.parse(localStorage.getItem('cpHub_unlockedBadges') || '[]')));
+  const unlockedNow = BADGE_DEFS.filter(b => b.check(state)).map(b => b.id);
+  const newlyUnlocked = unlockedNow.filter(id => !unlockedBefore.has(id));
+  localStorage.setItem('cpHub_unlockedBadges', JSON.stringify(unlockedNow));
+  newlyUnlocked.forEach(id => {
+    const badge = BADGE_DEFS.find(b => b.id === id);
+    if (badge) showToast('🎉 Mở khóa huy hiệu: ' + badge.icon + ' ' + badge.name, 'success');
+  });
+  renderBadges();
+}
+
+function renderBadges() {
+  const grid = $('badge-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  BADGE_DEFS.forEach(badge => {
+    const unlocked = badge.check(state);
+    const el = document.createElement('div');
+    el.className = 'badge-item' + (unlocked ? ' unlocked' : ' locked');
+    el.title = badge.desc;
+    el.innerHTML = `<span class="badge-icon">${badge.icon}</span><span class="badge-name">${sanitizeInput(badge.name)}</span>`;
+    grid.appendChild(el);
+  });
+}
+
+// ============================================================
+//  PROGRESS PAGE (tổng hợp)
+// ============================================================
+function renderProgressPage() {
+  renderRatingChart();
+  renderGoals();
+  renderBadges();
+}
+
+// ============================================================
+//  EXPORT WEEKLY REPORT AS IMAGE
+// ============================================================
+function exportWeeklyReportImage() {
+  const canvas = document.createElement('canvas');
+  const W = 800, H = 450;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#0a0a1a');
+  grad.addColorStop(1, '#111127');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Compute weekly stats
+  const weekStart = getMonday(new Date());
+  let categoryHours = {}; Object.keys(CATEGORIES).forEach(c => categoryHours[c] = 0);
+  let totalHours = 0;
+  for (let i = 0; i < 7; i++) {
+    const key = formatDate(addDays(weekStart, i));
+    (state.events[key] || []).forEach(ev => {
+      const hrs = (timeToMinutes(ev.endTime) - timeToMinutes(ev.startTime)) / 60;
+      categoryHours[ev.category] = (categoryHours[ev.category] || 0) + hrs;
+      totalHours += hrs;
+    });
+  }
+  const weekSolved = state.solvedLog.filter(l => {
+    const d = new Date(l.ts);
+    return d >= weekStart && d < addDays(weekStart, 7);
+  }).length;
+  const streak = computeStreak();
+  const currentRating = computeRatingHistory().pop();
+  const badgesUnlocked = BADGE_DEFS.filter(b => b.check(state)).length;
+
+  // Header
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillText('⚡ CP Training Hub', 30, 50);
+  ctx.fillStyle = '#8888aa';
+  ctx.font = '15px sans-serif';
+  ctx.fillText('Báo cáo tuần — ' + formatDateVi(formatDate(weekStart)) + ' → ' + formatDateVi(formatDate(addDays(weekStart, 6))), 30, 75);
+
+  // Stat cards
+  const stats = [
+    ['✅ Bài giải tuần này', weekSolved],
+    ['⏱️ Tổng giờ luyện tập', totalHours.toFixed(1) + 'h'],
+    ['🔥 Streak hiện tại', streak + ' ngày'],
+    ['📈 Rating ước tính', currentRating],
+    ['🏆 Huy hiệu đạt được', badgesUnlocked + '/' + BADGE_DEFS.length],
+  ];
+  let y = 130;
+  stats.forEach(([label, value]) => {
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(30, y - 28, W - 60, 46);
+    ctx.fillStyle = '#e8e8f0';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(label, 50, y);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(String(value), W - 50, y);
+    ctx.textAlign = 'left';
+    y += 56;
+  });
+
+  ctx.fillStyle = '#555570';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('Xuất từ CP Training Hub • ' + formatDateVi(formatDate(new Date())), 30, H - 20);
+
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cp-hub-weekly-report-' + formatDate(new Date()) + '.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Đã xuất báo cáo tuần dạng ảnh!', 'success');
+  });
+}
+
+// ============================================================
+//  VIRTUAL CONTEST MODE
+// ============================================================
+function startVirtualContest() {
+  const count = Math.max(2, Math.min(6, parseInt($('contest-count')?.value) || 4));
+  const durationMin = Math.max(10, parseInt($('contest-duration')?.value) || 120);
+  const ratingStart = parseInt($('contest-rating-start')?.value) || 1000;
+  const ratingStep = parseInt($('contest-rating-step')?.value) || 200;
+
+  if (state.allProblems.length === 0) { showToast('Chưa tải xong dữ liệu bài tập', 'error'); return; }
+
+  const usedIds = new Set();
+  const problems = [];
+  for (let i = 0; i < count; i++) {
+    const targetRating = ratingStart + i * ratingStep;
+    const candidates = state.allProblems
+      .filter(p => !usedIds.has(p.id) && Math.abs(p.rating - targetRating) <= Math.max(100, ratingStep / 2))
+      .sort((a, b) => Math.abs(a.rating - targetRating) - Math.abs(b.rating - targetRating));
+    const pick = candidates.length > 0
+      ? candidates[Math.floor(Math.random() * Math.min(5, candidates.length))]
+      : state.allProblems.slice().sort((a, b) => Math.abs(a.rating - targetRating) - Math.abs(b.rating - targetRating))[0];
+    if (pick) { usedIds.add(pick.id); problems.push(pick); }
+  }
+
+  if (problems.length === 0) { showToast('Không tìm đủ bài phù hợp', 'error'); return; }
+
+  state.activeContest = {
+    problems: problems,
+    startTime: Date.now(),
+    durationSec: durationMin * 60,
+    solved: {},
+  };
+
+  $('contest-setup').style.display = 'none';
+  $('contest-result').style.display = 'none';
+  $('contest-active').style.display = 'block';
+  renderContestProblems();
+  tickContestTimer();
+  state.contestTimerHandle = setInterval(tickContestTimer, 1000);
+  showToast('Bắt đầu Virtual Contest! Chúc may mắn 🍀', 'success');
+}
+
+function renderContestProblems() {
+  const container = $('contest-problems');
+  if (!container || !state.activeContest) return;
+  container.innerHTML = '';
+  const letters = 'ABCDEFGH';
+  state.activeContest.problems.forEach((p, i) => {
+    const isSolved = !!state.activeContest.solved[p.id];
+    const row = document.createElement('div');
+    row.className = 'contest-problem-row' + (isSolved ? ' solved' : '');
+    row.innerHTML = `
+      <span class="contest-problem-letter">${letters[i]}</span>
+      <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="contest-problem-name">${sanitizeInput(p.name)}</a>
+      <span class="contest-problem-rating" style="color:${getRatingColor(p.rating)}">${p.rating}</span>
+      <span class="contest-problem-time">${isSolved ? '✓ ' + formatSeconds(state.activeContest.solved[p.id]) : ''}</span>
+      <button class="btn ${isSolved ? 'btn-ghost' : 'btn-primary'} btn-sm contest-ac-btn" data-id="${p.id}">${isSolved ? 'Bỏ AC' : '✔ Đánh dấu AC'}</button>`;
+    row.querySelector('.contest-ac-btn').addEventListener('click', function() {
+      markContestProblem(p);
+    });
+    container.appendChild(row);
+  });
+}
+
+function markContestProblem(problem) {
+  const c = state.activeContest;
+  if (!c) return;
+  if (c.solved[problem.id]) {
+    delete c.solved[problem.id];
+  } else {
+    c.solved[problem.id] = Math.floor((Date.now() - c.startTime) / 1000);
+    if (!state.solved.has(problem.id)) {
+      state.solved.add(problem.id);
+      saveSolved();
+    }
+    logSolve(problem.id, Date.now());
+    showToast('✔ AC ' + problem.name, 'success');
+  }
+  renderContestProblems();
+}
+
+function formatSeconds(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return (h > 0 ? String(h).padStart(2, '0') + ':' : '') + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function tickContestTimer() {
+  const c = state.activeContest;
+  if (!c) return;
+  const elapsed = Math.floor((Date.now() - c.startTime) / 1000);
+  const remaining = c.durationSec - elapsed;
+  const timerEl = $('contest-timer');
+  if (timerEl) timerEl.textContent = formatSeconds(Math.max(0, remaining));
+  if (remaining <= 0) endVirtualContest();
+}
+
+function endVirtualContest() {
+  const c = state.activeContest;
+  if (!c) return;
+  clearInterval(state.contestTimerHandle);
+
+  const solvedCount = Object.keys(c.solved).length;
+  const totalTime = Math.floor((Date.now() - c.startTime) / 1000);
+
+  state.contestHistory.push({
+    id: generateId(),
+    date: formatDate(new Date()),
+    count: c.problems.length,
+    durationSec: c.durationSec,
+    solvedCount: solvedCount,
+    ratings: c.problems.map(p => p.rating),
+    solveTimes: c.problems.map(p => c.solved[p.id] || null),
+  });
+  saveContestHistory();
+
+  $('contest-active').style.display = 'none';
+  $('contest-setup').style.display = 'block';
+  const resultEl = $('contest-result');
+  if (resultEl) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <h3>🏁 Kết quả Virtual Contest</h3>
+      <p>Đã giải <strong>${solvedCount}/${c.problems.length}</strong> bài trong <strong>${formatSeconds(Math.min(totalTime, c.durationSec))}</strong>.</p>
+      <div class="contest-history">${
+        c.problems.map((p, i) => {
+          const t = c.solved[p.id];
+          return '<div class="contest-problem-row ' + (t ? 'solved' : '') + '"><span class="contest-problem-letter">' + 'ABCDEFGH'[i] + '</span><span class="contest-problem-name">' + sanitizeInput(p.name) + '</span><span class="contest-problem-rating" style="color:' + getRatingColor(p.rating) + '">' + p.rating + '</span><span class="contest-problem-time">' + (t ? '✓ ' + formatSeconds(t) : '✗ Chưa giải') + '</span></div>';
+        }).join('')
+      }</div>`;
+  }
+  state.activeContest = null;
+  renderContestHistoryList();
+  checkAchievements();
+  showToast('Kết thúc contest — giải ' + solvedCount + '/' + c.problems.length + ' bài!', solvedCount > 0 ? 'success' : 'info');
+}
+
+function renderContestHistoryList() {
+  const container = $('contest-history');
+  if (!container) return;
+  if (state.contestHistory.length === 0) {
+    container.innerHTML = '<p class="bookmarks-empty">Chưa có lịch sử contest nào.</p>';
+    return;
+  }
+  container.innerHTML = state.contestHistory.slice().reverse().slice(0, 10).map(c => `
+    <div class="contest-history-row">
+      <span>${formatDateVi(c.date)}</span>
+      <span>${c.solvedCount}/${c.count} bài</span>
+      <span>${formatSeconds(c.durationSec)}</span>
+    </div>`).join('');
+}
+
+// ============================================================
+//  COMMAND PALETTE
+// ============================================================
+function getCommandList() {
+  return [
+    { label: '🔍 Đi tới Problem Finder', run: () => navigateTo('problems') },
+    { label: '📅 Đi tới Schedule', run: () => navigateTo('schedule') },
+    { label: '🏁 Đi tới Virtual Contest', run: () => navigateTo('contest') },
+    { label: '📈 Đi tới Progress', run: () => navigateTo('progress') },
+    { label: '🎲 Random bài tập', run: randomProblem },
+    { label: '✕ Xóa bộ lọc', run: clearFilters },
+    { label: '🌗 Đổi giao diện sáng/tối', run: toggleTheme },
+    { label: '+ Thêm sự kiện lịch', run: () => { navigateTo('schedule'); openEventModal(null, null); } },
+    { label: '📋 Mở template lịch', run: () => { navigateTo('schedule'); openTemplateModal(); } },
+    { label: '📤 Export dữ liệu', run: exportData },
+    { label: '🖼️ Xuất báo cáo tuần dạng ảnh', run: () => { navigateTo('progress'); exportWeeklyReportImage(); } },
+    { label: '🏁 Bắt đầu Virtual Contest', run: () => { navigateTo('contest'); startVirtualContest(); } },
+  ];
+}
+
+function openCommandPalette() {
+  const overlay = $('cmd-palette-overlay');
+  const input = $('cmd-palette-input');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+  renderCommandList('');
+}
+
+function closeCommandPalette() {
+  const overlay = $('cmd-palette-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderCommandList(query) {
+  const list = $('cmd-palette-list');
+  if (!list) return;
+  const q = query.trim().toLowerCase();
+  const commands = getCommandList().filter(c => c.label.toLowerCase().includes(q));
+  list.innerHTML = '';
+  commands.forEach((cmd, i) => {
+    const item = document.createElement('div');
+    item.className = 'cmd-item' + (i === 0 ? ' active' : '');
+    item.textContent = cmd.label;
+    item.addEventListener('click', () => { cmd.run(); closeCommandPalette(); });
+    list.appendChild(item);
+  });
+  if (commands.length === 0) list.innerHTML = '<div class="cmd-item cmd-empty">Không có lệnh phù hợp</div>';
 }
 
 // ============== EVENT LISTENERS ==============
@@ -1848,6 +2483,56 @@ function initEventListeners() {
     }
   });
 
+  // CF handle sync
+  const cfSyncBtn = $('cf-sync-btn');
+  if (cfSyncBtn) cfSyncBtn.addEventListener('click', syncCfHandle);
+
+  // Similar problems modal
+  const similarModalClose = $('similar-modal-close');
+  const similarModal = $('similar-modal');
+  if (similarModalClose) similarModalClose.addEventListener('click', closeSimilarModal);
+  if (similarModal) similarModal.addEventListener('click', function(e) { if (e.target === this) closeSimilarModal(); });
+
+  // Goal tracker
+  const goalAddBtn = $('goal-add-btn');
+  if (goalAddBtn) goalAddBtn.addEventListener('click', addGoal);
+
+  // Export weekly report
+  const exportReportBtn = $('export-report-btn');
+  if (exportReportBtn) exportReportBtn.addEventListener('click', exportWeeklyReportImage);
+
+  // Virtual contest
+  const contestStartBtn = $('contest-start-btn');
+  const contestEndBtn = $('contest-end-btn');
+  if (contestStartBtn) contestStartBtn.addEventListener('click', startVirtualContest);
+  if (contestEndBtn) contestEndBtn.addEventListener('click', function() {
+    if (confirm('Kết thúc contest ngay bây giờ?')) endVirtualContest();
+  });
+
+  // Command palette
+  const cmdOpenBtn = $('open-cmd-palette-btn');
+  const cmdOverlay = $('cmd-palette-overlay');
+  const cmdInput = $('cmd-palette-input');
+  if (cmdOpenBtn) cmdOpenBtn.addEventListener('click', openCommandPalette);
+  if (cmdOverlay) cmdOverlay.addEventListener('click', function(e) { if (e.target === this) closeCommandPalette(); });
+  if (cmdInput) {
+    cmdInput.addEventListener('input', function() { renderCommandList(this.value); });
+    cmdInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const first = document.querySelector('#cmd-palette-list .cmd-item:not(.cmd-empty)');
+        if (first) first.click();
+      }
+      if (e.key === 'Escape') closeCommandPalette();
+    });
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+      e.preventDefault();
+      openCommandPalette();
+    }
+    if (e.key === 'Escape') { closeSimilarModal(); closeCommandPalette(); }
+  });
+
   // Export/Import buttons
   const exportBtn = $('export-data-btn');
   const importBtn = $('import-data-btn');
@@ -1879,6 +2564,9 @@ function init() {
     loadSchedule();
     loadCustomTemplates();
     loadSearchHistory();
+    loadSolvedLog();
+    loadGoals();
+    loadContestHistory();
     restoreDirectoryHandle();
     
     // Init UI
@@ -1886,6 +2574,9 @@ function init() {
     initTagsUI();
     updateStatsBar();
     initSchedule();
+    renderProgressPage();
+    renderContestHistoryList();
+    checkAchievements();
 
     // Load problems
     fetchProblems().then(function() {
@@ -1895,6 +2586,7 @@ function init() {
         renderProblems();
         renderBookmarks();
         renderSolvedStats();
+        renderProgressPage();
         const ojName = OJ_CONFIGS.codeforces.name;
         showToast('Đã tải ' + state.allProblems.length + ' bài tập từ ' + ojName, 'success');
       }

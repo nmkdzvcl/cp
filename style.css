@@ -2166,3 +2166,198 @@ body,
     border: 1px solid #ddd !important;
   }
 }
+
+/* ===============================================
+   V5 ADDITIONS — Command Palette, Similar Problems,
+   CF Sync, Virtual Contest, Progress Page
+   =============================================== */
+
+/* -- Sidebar command hint -- */
+.sidebar-cmd-hint { padding: 10px 14px; }
+.cmd-hint-btn {
+  width: 100%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.cmd-hint-btn:hover { background: var(--bg-glass-hover); color: var(--text-primary); }
+.cmd-hint-btn span { color: var(--text-muted); font-size: 11px; }
+
+/* -- CF handle sync row -- */
+.cf-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+.cf-sync-icon { font-size: 18px; }
+.cf-sync-row input {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+.cf-sync-status { font-size: 12px; color: var(--text-secondary); }
+
+/* -- Similar problems -- */
+.similar-btn {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.similar-btn:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); }
+.similar-list { display: flex; flex-direction: column; gap: 8px; padding: 16px; max-height: 60vh; overflow-y: auto; }
+.similar-item {
+  display: grid;
+  grid-template-columns: 70px 1fr 60px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-glass);
+  border-left: 3px solid var(--card-accent, var(--accent-cyan));
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 13px;
+}
+.similar-item:hover { background: var(--bg-glass-hover); }
+.similar-item-tags { color: var(--text-secondary); font-size: 12px; }
+
+/* -- Command Palette -- */
+.cmd-palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 2000;
+}
+.cmd-palette {
+  width: min(560px, 90vw);
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.cmd-palette input {
+  width: 100%;
+  padding: 16px 18px;
+  background: var(--bg-input);
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 15px;
+}
+.cmd-palette-list { max-height: 40vh; overflow-y: auto; }
+.cmd-item { padding: 12px 18px; color: var(--text-primary); cursor: pointer; font-size: 14px; }
+.cmd-item:hover, .cmd-item.active { background: var(--bg-glass-hover); color: var(--accent-cyan); }
+.cmd-item.cmd-empty { color: var(--text-muted); cursor: default; }
+.cmd-item.cmd-empty:hover { background: transparent; color: var(--text-muted); }
+
+/* -- Virtual Contest -- */
+.contest-setup { display: flex; flex-direction: column; gap: 16px; }
+.contest-timer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 64px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent-cyan);
+  padding: 24px 0;
+}
+.contest-problems { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.contest-problem-row, .contest-history-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px 90px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.contest-history-row { grid-template-columns: 1fr 1fr 1fr; }
+.contest-problem-row.solved { border-color: var(--accent-green); background: rgba(16,185,129,0.08); }
+.contest-problem-letter {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-cyan); color: #000;
+  border-radius: 50%; font-weight: 700;
+}
+.contest-problem-name { color: var(--text-primary); text-decoration: none; }
+.contest-problem-name:hover { color: var(--accent-cyan); }
+.contest-result { margin-top: 20px; padding: 20px; background: var(--bg-glass); border-radius: 12px; }
+.contest-history { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+/* -- Progress Page -- */
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.progress-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 20px;
+}
+.progress-card h3 { margin-bottom: 14px; color: var(--text-primary); }
+.rating-chart-svg { width: 100%; height: 200px; }
+.rating-current { margin-top: 10px; font-size: 14px; color: var(--text-secondary); }
+
+.goal-add-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.goal-add-row input {
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+.goal-add-row input#goal-text { flex: 2; min-width: 200px; }
+.goal-list { display: flex; flex-direction: column; gap: 12px; }
+.goal-item { background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px; }
+.goal-item.done { opacity: 0.6; }
+.goal-item-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.goal-text { color: var(--text-primary); font-weight: 500; }
+.goal-deadline { color: var(--text-secondary); font-size: 12px; }
+.goal-progress-bar { height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.goal-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple)); }
+.goal-item-actions { display: flex; align-items: center; gap: 10px; }
+.goal-progress-label { color: var(--text-secondary); font-size: 12px; margin-right: auto; }
+
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+.badge-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 8px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 12px;
+}
+.badge-item.unlocked { background: rgba(0,212,255,0.1); border: 1px solid var(--border-accent); color: var(--text-primary); }
+.badge-item.locked { background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-muted); filter: grayscale(1); opacity: 0.5; }
+.badge-icon { font-size: 26px; }
+
+@media (max-width: 900px) {
+  .progress-grid { grid-template-columns: 1fr; }
+  .contest-problem-row, .contest-history-row { grid-template-columns: 30px 1fr; grid-auto-rows: auto; }
+}
