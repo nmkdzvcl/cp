@@ -200,6 +200,9 @@ const state = {
   goals: [],          // [{id, text, targetRating, deadline, done, createdAt}]
   contestHistory: [], // [{id, date, count, durationSec, solvedCount, ratings:[], solveTimes:[]}]
   activeContest: null, // {problems:[], startTime, durationSec, solved:{id:timeSec}, timerHandle}
+  // IELTS additions
+  ieltsBandLog: [],      // [{ts, listening, reading, speaking, writing}]
+  paraphraseNotes: [],   // [{id, original, paraphrase, ts}]
 };
 
 // ============== UTILITIES ==============
@@ -302,6 +305,8 @@ function getBackupData() {
     solvedLog: state.solvedLog,
     goals: state.goals,
     contestHistory: state.contestHistory,
+    ieltsBandLog: state.ieltsBandLog,
+    paraphraseNotes: state.paraphraseNotes,
   };
 }
 
@@ -586,6 +591,7 @@ function navigateTo(pageName) {
   }
   if (pageName === 'progress') renderProgressPage();
   if (pageName === 'contest') renderContestHistoryList();
+  if (pageName === 'ielts') initIeltsPage();
 }
 
 // ============== STATS BAR ==============
@@ -1746,6 +1752,8 @@ function importData(file) {
       if (data.solvedLog) { state.solvedLog = data.solvedLog; saveSolvedLog(); }
       if (data.goals) { state.goals = data.goals; saveGoals(); }
       if (data.contestHistory) { state.contestHistory = data.contestHistory; saveContestHistory(); }
+      if (data.ieltsBandLog) { state.ieltsBandLog = data.ieltsBandLog; saveIeltsBandLog(); }
+      if (data.paraphraseNotes) { state.paraphraseNotes = data.paraphraseNotes; saveParaphraseNotes(); }
 
       renderProblems();
       renderBookmarks();
@@ -2233,6 +2241,8 @@ function getCommandList() {
     { label: '📅 Đi tới Schedule', run: () => navigateTo('schedule') },
     { label: '🏁 Đi tới Virtual Contest', run: () => navigateTo('contest') },
     { label: '📈 Đi tới Progress', run: () => navigateTo('progress') },
+    { label: '📖 Đi tới IELTS Hub', run: () => navigateTo('ielts') },
+    { label: '📋 Xem Logs / Changelog', run: openLogsModal },
     { label: '🎲 Random bài tập', run: randomProblem },
     { label: '✕ Xóa bộ lọc', run: clearFilters },
     { label: '🌗 Đổi giao diện sáng/tối', run: toggleTheme },
@@ -2272,6 +2282,354 @@ function renderCommandList(query) {
     list.appendChild(item);
   });
   if (commands.length === 0) list.innerHTML = '<div class="cmd-item cmd-empty">Không có lệnh phù hợp</div>';
+}
+
+const IELTS_CHEATSHEETS = {
+  listening: "# IELTS Listening Cheat Sheet\n\n> **Đang ở band 7.0** → tập trung vào 2 hàng cuối bảng dưới (6.5-7.0 và 7.0+): xử lý bẫy \"correction signal\" và nghe học thuật Section 4 chuẩn xác hơn. Phần nền tảng (skim câu hỏi, dictation cơ bản) có thể lướt qua.\n\n\n## 0. Cấu trúc bài thi\n- 4 sections, 40 câu, ~30 phút nghe + 10 phút chuyển đáp án (bản giấy) — bản máy tính (CD IELTS) không có 10 phút này, chuyển đáp án song song\n- Section 1: hội thoại đời thường (đặt phòng, đăng ký...) — dễ nhất\n- Section 2: độc thoại đời thường (hướng dẫn, giới thiệu địa điểm...)\n- Section 3: hội thoại học thuật (thảo luận nhóm, giữa sinh viên-giáo viên...) — khó dần\n- Section 4: độc thoại học thuật (bài giảng) — khó nhất, không có thời gian nghỉ giữa câu\n\n## 1. Vấn đề thường gặp theo band\n\n| Band | Vấn đề chính | Ưu tiên luyện |\n|---|---|---|\n| 5.0-5.5 | Nghe không kịp, mất chữ liên tục | Luyện nghe chậm trước, quen accent cơ bản (UK/US) |\n| 5.5-6.0 | Nghe được nhưng không bắt kịp số liệu/chính tả | Luyện chép chính tả (dictation) số, tên riêng |\n| 6.0-6.5 | Section 3-4 mất tập trung do dài, nhiều thông tin nhiễu | Luyện nghe đoạn dài liên tục 5-10 phút không dừng |\n| 6.5-7.0 | Bẫy \"đánh lạc hướng\" (người nói sửa lại ý) chưa nhận ra | Luyện nhận diện \"correction signal\": actually, sorry, I mean, well... |\n| 7.0+ | Đồng nghĩa/paraphrase trong Section 4 academic | Mở rộng từ vựng học thuật, luyện nghe bài giảng thật (TED, lecture) |\n\n---\n\n## 2. Kỹ thuật làm bài\n\n- **Đọc trước câu hỏi** trong thời gian cho phép (thường 30s-1 phút/section) — gạch từ khóa, đoán loại từ cần điền\n- **Nghe theo thứ tự** — thông tin trong Listening LUÔN đi theo đúng thứ tự câu hỏi (khác Reading)\n- Chú ý **\"correction signal\"** — người nói hay tự sửa lại thông tin: \"It's on Tuesday... actually, sorry, make that Wednesday\" → đáp án đúng là ý SAU\n- Với Form/Note/Table Completion: đoán trước loại từ (số, tên, địa điểm...) để nghe có định hướng\n- Multiple Choice trong Listening khó hơn Reading vì phải nghe kịp cả 3 đáp án bị đọc qua nhanh — nên đọc trước để không bị rối\n\n## 3. Lỗi chính tả & ngữ pháp thường gặp (mất điểm oan)\n- Sai số ít/số nhiều (book/books)\n- Viết sai chính tả từ đã nghe đúng (đặc biệt tên riêng, địa danh)\n- Không tuân thủ giới hạn từ (\"NO MORE THAN THREE WORDS AND/OR A NUMBER\")\n- Nhầm lẫn các số dễ gây nhiễu âm: 13/30, 14/40, 15/50...\n\n## 4. Luyện tập theo từng giai đoạn\n1. **Giai đoạn nền (5.0-6.0):** Nghe chậm, dừng nhiều lần, luyện dictation câu ngắn\n2. **Giai đoạn tăng tốc (6.0-6.5):** Nghe 1 lần không dừng, luyện đoán trước loại từ\n3. **Giai đoạn học thuật (6.5-7.5):** Nghe bài giảng dài (TED-Ed, lecture thật), luyện tóm tắt ý chính sau khi nghe\n\n## 5. Nguồn ôn Listening\n| Nội dung | Nguồn |\n|---|---|\n| Đề sát thật, có transcript, giải thích đáp án | STUDY4, IELTS Online Tests |\n| Nguồn chính thức | British Council, IDP |\n| Luyện nghe học thuật, mở rộng từ vựng | TED-Ed, TED Talks |\n| Nghe tin tức tốc độ thật, đa accent | BBC News, NPR |\n| Bộ đề chuẩn Cambridge (Cam 7-18) | Tích hợp trên STUDY4, DOL Tự học |\n\n## 6. Lỗi cần tránh\n- Chỉ luyện nghe đề thi, không luyện nghe tự nhiên (podcast, tin tức) → phản xạ chậm với tốc độ nói thật\n- Bỏ qua transcript sau khi làm đề — nghe transcript lại là bước quan trọng để phát hiện từ mình nghe sai/không quen\n- Không luyện chính tả riêng — mất điểm ở lỗi rất cơ bản dù nghe đúng ý\n",
+  reading: "# IELTS Reading Cheat Sheet (Đang ở Band 6.0 → mục tiêu 7.0+)\n\n## 0. Band 6.0 thường bị chặn ở đâu?\n\n| Vấn đề | Biểu hiện |\n|---|---|\n| Tốc độ đọc chưa đủ | Không kịp làm hết 40 câu trong 60 phút, thường \"cháy giờ\" ở Passage 3 |\n| Chưa quen skim/scan | Đọc kỹ từ đầu đến cuối như đọc sách → mất thời gian |\n| Bị bẫy paraphrase | Tìm từ y hệt trong bài thay vì nhận diện từ đồng nghĩa → bỏ lỡ đáp án đúng ngay trước mắt |\n| Nhầm True/False/Not Given | Đây là dạng mất điểm nhiều nhất ở band 6.0-6.5 vì hay tự suy luận thêm |\n| Chưa quen câu hỏi khó ở Passage 3 | Bài học thuật, câu dài, ý trừu tượng hơn P1/P2 |\n\n**Mục tiêu chính để lên 7.0:** Tăng tốc độ đọc hiểu + xử lý chuẩn xác dạng True/False/Not Given và Matching Headings (2 dạng dễ mất điểm oan nhất).\n\n---\n\n## 1. Kỹ thuật đọc\n\n- **Đọc câu hỏi trước** → gạch chân từ khóa (danh từ riêng, số liệu, động từ đặc trưng)\n- **Skim** (đọc câu đầu + câu cuối mỗi đoạn) để nắm ý chính → dùng cho Matching Headings, Matching Paragraph Information\n- **Scan** (quét tìm từ khóa cụ thể: tên riêng, số, năm) → dùng cho câu hỏi cần định vị chính xác\n- Đáp án **hầu như luôn paraphrase** — luyện phản xạ nhận ra synonym là kỹ năng quan trọng nhất để lên band\n- Không đọc hết bài trước khi làm câu hỏi — vừa mất thời gian vừa dễ quên chi tiết\n\n---\n\n## 2. Chiến lược theo từng dạng câu hỏi\n\n| Dạng | Mẹo cụ thể |\n|---|---|\n| **True/False/Not Given** | Chỉ dựa thông tin CÓ trong bài. False = bài nói NGƯỢC LẠI hoàn toàn. Not Given = bài KHÔNG ĐỀ CẬP (không phải vì bạn không tìm thấy). Đừng suy luận theo kiến thức ngoài. |\n| **Yes/No/Not Given** | Giống trên nhưng áp dụng cho quan điểm/ý kiến của tác giả, không phải sự kiện khách quan |\n| **Matching Headings** | Đọc câu đầu + câu cuối đoạn để bắt ý chính, không cần đọc chi tiết cả đoạn. Chú ý các heading \"bẫy\" chỉ đúng một phần ý đoạn |\n| **Multiple Choice** | Loại trừ đáp án sai rõ ràng trước, cẩn thận đáp án \"đúng một phần / đúng nhưng không phải trọng tâm câu hỏi\" |\n| **Sentence/Summary Completion** | Xác định loại từ cần điền (N/V/Adj) trước khi tìm trong bài, để ý giới hạn từ (\"NO MORE THAN TWO WORDS\") |\n| **Matching Information** | Xác định từ khóa câu hỏi, scan toàn bài (thông tin không theo thứ tự đoạn như Matching Headings) |\n| **Matching Features** | Chú ý tên riêng/mốc thời gian gắn với từng đặc điểm, dễ nhầm lẫn giữa các đối tượng gần giống nhau |\n| **Table/Flow-chart/Diagram Completion** | Xác định vị trí trong bài trước (thường theo thứ tự), chú ý loại từ và giới hạn số từ |\n\n---\n\n## 3. Quản lý thời gian (60 phút / 40 câu / 3 passages)\n\n- ~17-20 phút/passage, Passage 3 thường khó nhất (học thuật, câu dài) nên có thể làm P1 → P2 → P3 để giữ nhịp tự tin\n- Câu khó thì đánh dấu bỏ qua, quay lại sau — đừng \"kẹt\" quá 1-2 phút ở 1 câu\n- Tô đáp án ngay lúc làm bài (không có thời gian chép lại cuối giờ như bài thi giấy cũ)\n- Luyện làm full test có bấm giờ ít nhất 2-3 lần/tuần để quen áp lực thời gian\n\n---\n\n## 4. Bài tập luyện tốc độ (dành riêng cho band 6.0 → 7.0)\n\n- Mỗi ngày đọc 1 bài báo khoa học/xã hội ngắn (The Guardian, BBC, National Geographic) và tự đặt câu hỏi True/False cho chính mình\n- Luyện skim: đặt hẹn giờ 2 phút để nắm ý chính 1 đoạn dài, sau đó kiểm tra lại xem có đúng không\n- Ghi lại các cặp từ paraphrase gặp phải khi làm đề (từ trong bài ↔ từ trong câu hỏi) → tích lũy dần thành \"sổ tay paraphrase\" của riêng bạn\n\n---\n\n## 5. Nguồn ôn Reading\n\n| Nội dung | Nguồn |\n|---|---|\n| Đề sát thật, giải thích đáp án chi tiết tiếng Việt | STUDY4 |\n| Thi thử real-time, phân tích điểm mạnh/yếu | IELTS Online Tests |\n| Bài đọc từ tạp chí khoa học, sát độ khó thật | IELTS Mentor |\n| Nguồn chính thức, sát format chuẩn | British Council, IDP |\n| Bộ đề chuẩn nhất (Cambridge IELTS 7-18) | Có tích hợp trên STUDY4, DOL Tự học |\n| Luyện đọc học thuật hàng ngày (ngoài đề thi) | The Guardian, BBC News, National Geographic |\n\n---\n\n## 6. Lỗi cần tránh ở band 6.0\n- Tự suy luận thêm ở dạng True/False/Not Given thay vì bám sát chữ trong bài\n- Cố đọc hiểu 100% bài viết trước khi làm câu hỏi — không cần thiết và tốn thời gian\n- Bỏ qua việc luyện tốc độ, chỉ tập trung học từ vựng — Reading ở band 6.0 thường thiếu tốc độ hơn là thiếu từ\n- Không luyện full test có giờ → vào phòng thi bị động, dễ cháy giờ Passage 3\n",
+  speaking: "# IELTS Speaking Cheat Sheet\n\n## 0. Cấu trúc bài thi (11-14 phút)\n- **Part 1** (4-5 phút): câu hỏi cá nhân quen thuộc (nhà, công việc, sở thích...)\n- **Part 2** (3-4 phút): nói theo cue card 1-2 phút sau 1 phút chuẩn bị\n- **Part 3** (4-5 phút): thảo luận mở rộng, trừu tượng hơn, liên quan chủ đề Part 2\n\n## 1. Vấn đề thường gặp theo band\n\n| Band | Vấn đề chính | Ưu tiên luyện |\n|---|---|---|\n| 5.0-5.5 | Trả lời ngắn, thiếu ý mở rộng, ngập ngừng nhiều | Luyện trả lời đủ 3-4 câu/ý, không trả lời cụt |\n| 5.5-6.0 | Từ vựng lặp lại, phát âm ảnh hưởng hiểu | Học từ vựng theo chủ đề, luyện phát âm âm cuối |\n| 6.0-6.5 | Ngữ pháp đơn điệu, ít câu phức | Luyện dùng mệnh đề quan hệ, câu điều kiện tự nhiên |\n| 6.5-7.0 | Part 3 trả lời còn hời hợt, chưa lập luận sâu | Luyện tư duy phản biện, đưa ví dụ + giải thích \"why\" |\n| 7.0+ | Thiếu tự nhiên, còn \"học thuộc\" nghe rõ | Luyện phản xạ tự nhiên, giảm học thuộc câu mẫu cố định |\n\n---\n\n## 2. Chiến lược theo từng Part\n\n### Part 1\n- Trả lời trực tiếp + mở rộng 1-2 câu (không cần dài, nhưng không cụt lủn 1 câu)\n- Ví dụ: \"Do you like reading?\" → \"Yes, I really enjoy it, especially fiction novels. I usually read before bed because it helps me relax after a long day.\"\n\n### Part 2 (Cue card)\n- Dùng 1 phút chuẩn bị để gạch ý theo cấu trúc: **What – When/Where – Why/How – Feeling**\n- Không cần viết câu đầy đủ, chỉ ghi từ khóa\n- Nói đủ thời gian (1-2 phút), tránh dừng giữa chừng vì hết ý — nếu bí, kể thêm cảm xúc/chi tiết phụ liên quan\n\n### Part 3\n- Đây là phần **quyết định band cao** — cần lập luận, ví dụ, so sánh, không chỉ trả lời 1 câu\n- Cấu trúc trả lời: nêu quan điểm → giải thích lý do → cho ví dụ minh họa\n- Có thể dùng cấu trúc so sánh quá khứ - hiện tại, hoặc giả định (nếu... thì...) để thể hiện ngữ pháp đa dạng\n\n---\n\n## 3. Tiêu chí chấm điểm (bám vào để luyện đúng trọng tâm)\n| Tiêu chí | Ý nghĩa | Cách cải thiện |\n|---|---|---|\n| Fluency & Coherence | Nói trôi chảy, mạch lạc, ít ngập ngừng | Luyện nói liên tục không dừng giữa câu, dùng filler tự nhiên (well, actually, you know) thay vì \"ừm\" |\n| Lexical Resource | Từ vựng đa dạng, đúng ngữ cảnh | Học từ theo chủ đề + collocation, tránh lặp từ |\n| Grammatical Range & Accuracy | Đa dạng cấu trúc câu, ít lỗi | Luyện trộn câu đơn/phức, tự sửa lỗi khi nói (paraphrase lại nếu sai) |\n| Pronunciation | Phát âm rõ, ngữ điệu tự nhiên | Luyện âm cuối (-ed, -s), trọng âm từ, ngữ điệu lên xuống |\n\n---\n\n## 4. Mẹo tránh mất điểm oan\n- Đừng học thuộc nguyên câu trả lời — giám khảo nhận ra ngay và bị đánh giá thấp Fluency (nói không tự nhiên)\n- Nếu không hiểu câu hỏi, được phép hỏi lại lịch sự: \"Could you repeat that, please?\" — không bị trừ điểm vì việc này\n- Nói sai thì sửa lại tự nhiên ngay, đừng dừng lại quá lâu hoặc xin lỗi rối rít\n- Part 3 tránh trả lời \"Yes/No\" cụt — luôn giải thích + ví dụ\n\n## 5. Nguồn ôn Speaking\n| Nội dung | Nguồn |\n|---|---|\n| Hướng dẫn từng bước theo dạng câu hỏi, chi tiết | IELTS Advantage |\n| Bộ đề dự đoán theo quý, cập nhật liên tục | IELTS The Tutors (Speaking Forecast) |\n| Nguồn chính thức, mẫu câu trả lời chuẩn | British Council, IDP |\n| Luyện phát âm, ngữ điệu tự nhiên | ELSA Speak (app phát âm), TED Talks (nghe & bắt chước ngữ điệu) |\n\n## 5b. Công cụ AI chấm điểm Speaking (cập nhật)\n| Công cụ | Đặc điểm |\n|---|---|\n| **AI4IELTS** (ai4ielts.com/app/speaking) | Chấm Part 1-2-3 miễn phí, phản hồi theo chuẩn British Council: band tổng + pronunciation, vocabulary, fluency |\n| **KTDC AI** (ai.ktdcgroup.vn) | Miễn phí, mô phỏng bài thi thật + trò chuyện với AI coach, chấm chi tiết + hướng dẫn cải thiện ngay. Đồng phát triển bởi cựu giám khảo IELTS |\n| **YouPass PRO** | Chấm AI 24/7, chi tiết theo 4 tiêu chí, nhưng có giới hạn số lần/tháng và cần trả phí gói PRO |\n| **chamchuaieltsmienphi.com** | Công cụ chấm Speaking & Writing AI miễn phí dành cho học sinh Việt Nam |\n| **FLYER AI** (giáo viên dùng) | Chủ yếu dành cho giáo viên/trung tâm chấm hộ học viên, quy đổi band chuẩn CEFR/IELTS/TOEIC |\n\n**Lưu ý chung:** AI chấm Speaking hiện vẫn có sai số so với giám khảo thật (thường lệch 0.5-1 band, thường chấm nhỉnh hơn thực tế) — nên dùng để luyện phản xạ + phát hiện lỗi phát âm/ngữ pháp hàng ngày, không nên coi điểm AI là điểm dự đoán chính xác band thi thật.\n\n## 6. Cách luyện tại nhà không có partner\n- Ghi âm câu trả lời của mình, nghe lại để tự phát hiện lỗi lặp từ/ngập ngừng\n- Tự đặt câu hỏi Part 3 mở rộng cho chính chủ đề Part 2 vừa nói, luyện phản xạ nối tiếp\n- Luyện \"nói không dừng\" 2 phút liên tục về 1 chủ đề bất kỳ mỗi ngày — mục tiêu là duy trì fluency chứ chưa cần đúng 100%\n",
+  writing: "# IELTS Writing Cheat Sheet (Band 5.0–7.5)\n\n## 0. Lộ trình theo band — nên tập trung vào đâu\n\n| Band | Vấn đề chính cần sửa | Ưu tiên luyện |\n|---|---|---|\n| 5.0 → 5.5 | Câu sai ngữ pháp cơ bản (thì, số ít/nhiều, mạo từ), ý lặp/lan man, chưa trả lời đúng đề | Viết câu đơn/câu ghép ĐÚNG trước, chưa cần câu phức. Đọc kỹ đề, gạch yêu cầu. |\n| 5.5 → 6.0 | Từ vựng lặp lại nhiều, ý chưa được giải thích/dẫn chứng | Học paraphrase cơ bản, mỗi ý thêm 1 câu giải thích \"why/how\" |\n| 6.0 → 6.5 | Cấu trúc câu đơn điệu, linking words dùng máy móc | Trộn câu đơn + câu phức (mệnh đề quan hệ, mệnh đề điều kiện) |\n| 6.5 → 7.0 | Ý còn chung chung, thiếu chiều sâu lập luận | Mỗi đoạn thân bài: ý chính → giải thích → ví dụ cụ thể (không ví dụ chung chung) |\n| 7.0 → 7.5 | Từ vựng đôi khi chưa tự nhiên, câu phức đôi lúc gượng | Đọc sample band 8 để học cách diễn đạt tự nhiên, giảm lỗi nhỏ về collocation |\n\n## 1. Linking Words theo nhóm chức năng\n\n### Liệt kê ý (Listing)\nFirstly / Secondly / Thirdly, To begin with, Furthermore, In addition, Moreover, Finally\n\n### Đưa ví dụ (Giving examples)\nFor example, For instance, To illustrate, As follows, Namely, In other words\n\n### Nguyên nhân (Cause)\nBecause + clause | Because of / Due to / Owing to + N/V-ing\n- Because of + Noun phrase, clause.\n- Because the government invested heavily, traffic congestion decreased.\n\n### Kết quả (Result/Consequence)\nSo, Therefore, As a result, Consequently, Thus, Hence, For this reason\n\n### Đối lập (Contrast)\nHowever, Nevertheless, On the other hand, In contrast, Whereas, Although + clause, Despite/In spite of + N/V-ing\n\n### Bổ sung (Addition)\nMoreover, In addition, Additionally, Besides, Furthermore\n\n### Kết luận (Conclusion)\nIn conclusion, To conclude, To sum up, Overall\n\n**Lưu ý:** Đa dạng > số lượng. 1 bài Task 2 chỉ cần 4-6 linking words dùng đúng chỗ, không nhồi nhét mỗi câu một từ.\n\n---\n\n## 2. Câu mở bài (Introduction) — công thức chung\n\n**Bước 1 — Paraphrase đề bài** (không copy nguyên câu đề):\n- Đổi từ đồng nghĩa: \"some people think\" → \"it is argued by some individuals that...\"\n- Đổi cấu trúc câu: chủ động ↔ bị động, đảo trật tự mệnh đề\n\n**Bước 2 — Thesis statement** (nêu hướng bài viết, tùy dạng đề):\n\n| Dạng đề | Cấu trúc câu 2 |\n|---|---|\n| Opinion (Agree/Disagree) | \"This essay agrees/disagrees with this view because...\" hoặc nêu quan điểm sẽ triển khai |\n| Discussion (Discuss both views) | \"This essay will discuss both views before giving my own opinion.\" |\n| Problem – Solution | \"This essay will examine the causes of this problem and suggest some solutions.\" |\n| Advantages/Disadvantages | \"This essay will discuss both the benefits and drawbacks of this trend.\" |\n\n**Với band 5.0–6.0:** chưa cần câu phức cầu kỳ, chỉ cần paraphrase đúng + đủ ý, câu đơn giản nhưng ĐÚNG ngữ pháp còn ăn điểm hơn câu phức sai.\n- Ví dụ đơn giản: \"Nowadays, many people believe that technology has made everyday life easier. However, some others think it has caused more problems. This essay will discuss both views.\"\n(Câu này band 5.5-6.0 vẫn ổn dù dùng \"Nowadays\" — ở band cao hơn 7.0 nên tránh vì hơi sáo)\n\n**Với band 6.5–7.5:** paraphrase linh hoạt hơn, câu phức tự nhiên hơn — xem ví dụ dưới:\n> Đề: *\"Some people believe technology has made life more convenient, while others think it has created more problems.\"*\n> Mở bài: \"It is often claimed that technological advancements have simplified daily routines, whereas others argue that they have generated a range of new difficulties. This essay will examine both perspectives before presenting my own viewpoint.\"\n\n---\n\n## 3. Nguồn tham khảo thêm\n\n| Nội dung | Nguồn |\n|---|---|\n| Linking words theo nhóm, có cấu trúc câu | DOL English (dolenglish.vn) |\n| 50+ từ nối phân loại theo Coherence & Cohesion | IZONE |\n| Từ vựng theo 50 chủ đề (PDF free) | DOL English |\n| Từ vựng theo chủ đề + âm + hình | VOCA.vn |\n| Sample essay band cao, đa dạng dạng đề | IELTS-up, IELTS Mentor |\n| Tra synonym/collocation học thuật chuẩn | Oxford Learner's Dictionary (miễn phí) |\n\n---\n\n## 4. Lỗi thường gặp cần tránh (band 6→7.5)\n- Học thuộc 1 câu mở cố định → giám khảo nhận ra ngay, bị trừ Task Response\n- Nhồi linking words mỗi câu → mất điểm Coherence & Cohesion vì thiếu tự nhiên\n- Dùng từ vựng \"sáo rỗng\" (nowadays, it is undeniable that...) → nên thay bằng cách diễn đạt tự nhiên hơn\n",
+};
+
+const IELTS_WEBDIR_MD = "# Danh sách Web Ôn Luyện IELTS\n\n## 1. Nguồn chính thức (uy tín cao nhất, miễn phí)\n- **British Council – Take IELTS**: takeielts.britishcouncil.org/take-ielts/prepare/free-ielts-english-practice-tests\n  Tài liệu luyện tập chính thức đủ 4 kỹ năng, do đơn vị đồng sở hữu bài thi IELTS phát hành.\n- **IDP IELTS**\n  Tài liệu, đề mẫu, video hướng dẫn chính thức từ đơn vị tổ chức thi.\n- **Cambridge Write & Improve**\n  Công cụ chấm Writing AI chính thức từ Cambridge — đáng tin hơn nhiều AI khác vì cùng đơn vị ra đề Cambridge.\n\n## 2. Web luyện đề tổng hợp (đủ 4 kỹ năng, sát đề thật)\n- **IELTS Online Tests** (ieltsonlinetests.com) – thi thử real-time, chấm tự động, phân tích điểm mạnh/yếu\n- **STUDY4** (study4.com) – kho đề Cambridge 7-18, Actual Test, IELTS Trainer... giải thích đáp án tiếng Việt chi tiết\n- **DOL Tự học** (dolenglish.vn) – kho đề lớn, có cộng đồng hỗ trợ (group Facebook riêng)\n- **IELTS-fighter.com** – đề thi thử tự xây dựng bởi trung tâm\n\n## 3. Web nước ngoài, tài liệu học thuật sâu\n- **IELTS Buddy** – đầy đủ tính năng học + test, tài liệu chọn lọc\n- **Canada Visa IELTS practice** – có công cụ chấm điểm tham khảo cho Writing/Speaking\n- **IELTS Tutorials** – 20 bài test đủ 4 kỹ năng, miễn phí\n\n## 4. Các nguồn khác đã biết\n- **IELTS Mentor** – kho đề mẫu khổng lồ, chia theo kỹ năng rõ ràng\n- **IELTS-up** – luyện 4 kỹ năng, có dịch vụ chữa Writing trả phí\n- **IELTS Liz** – tài liệu miễn phí + mẹo thi\n- **IELTS Advantage** – hướng dẫn Speaking từng bước chi tiết\n- **TED-Ed** – luyện Listening qua video học thuật, mở rộng từ vựng\n- **YouPass** – AI chấm Writing/Speaking 24/7, kho đề lớn (lưu ý: AI đôi khi chấm thoáng hơn thực tế ~0.5-1 band)\n\n## 5. Gợi ý chọn nhanh theo nhu cầu\n| Nhu cầu | Nên dùng |\n|---|---|\n| Đề sát thật nhất | STUDY4, IELTS Online Tests, British Council |\n| Chấm Writing đáng tin | Cambridge Write & Improve (chính thống) + YouPass (chi tiết hơn nhưng hơi thoáng điểm) |\n| Tài liệu tổng hợp free khổng lồ | DOL Tự học, IELTS Mentor |\n| Luyện Listening học thuật | TED-Ed |\n| Luyện Speaking bài bản | IELTS Advantage |\n\n## 6. Đánh giá công cụ đang dùng (YouPass / RealIELTSExam / JumpInto)\n\n| Công cụ | Điểm mạnh | Điểm cần lưu ý |\n|---|---|---|\n| **YouPass** | AI chấm Writing/Speaking chi tiết theo 4 tiêu chí, kho đề lớn, giáo viên hỗ trợ qua Zalo | AI hay chấm thoáng hơn thực tế ~0.5-1 band; bản PRO giới hạn số lần chấm/tháng |\n| **RealIELTSExam** | Mô phỏng giao diện thi thật trên máy (CD IELTS) rất sát, đề gốc từ ngân hàng đề chính thức, cập nhật đề Speaking theo quý | Trả phí (không free); một số phản ánh quy trình thanh toán hơi rối |\n| **JumpInto** | App mobile, luyện đủ 4 kỹ năng, AI chấm Writing/Speaking tức thì kèm bài mẫu band 8, có tính năng shadowing luyện phát âm, từ điển Anh-Việt offline | Bản free có quảng cáo; Pro ~2.99$/tháng hoặc 39.99$ trọn đời |\n\n**Cách phối hợp 3 tool hiệu quả:**\n- **RealIELTSExam** → làm full test để luyện tốc độ + quen giao diện thi thật\n- **JumpInto** → luyện hàng ngày lẻ tẻ từng kỹ năng, đặc biệt Speaking shadowing (tiện vì là app mobile)\n- **YouPass** → dùng chấm chữa sâu Writing khi cần feedback chi tiết theo từng tiêu chí\n\nLưu ý chung: cả 3 đều dùng AI chấm Writing/Speaking → nên tham khảo thêm 1 nguồn ngoài (giáo viên thật hoặc Cambridge Write & Improve) gần ngày thi để tránh \"ảo tưởng điểm\".\n";
+
+const IELTS_WEB_DIRECTORY = [
+  { name: 'British Council – Take IELTS', url: 'https://takeielts.britishcouncil.org/take-ielts/prepare/free-ielts-english-practice-tests', desc: 'Tài liệu luyện tập chính thức đủ 4 kỹ năng, do đơn vị đồng sở hữu bài thi IELTS phát hành.', tags: ['chinh-thuc', 'de-sat-that'] },
+  { name: 'IDP IELTS', url: 'https://ielts.idp.com', desc: 'Tài liệu, đề mẫu, video hướng dẫn chính thức từ đơn vị tổ chức thi.', tags: ['chinh-thuc'] },
+  { name: 'Cambridge Write & Improve', url: 'https://writeandimprove.com', desc: 'Công cụ chấm Writing AI chính thức từ Cambridge — đáng tin hơn nhiều AI khác.', tags: ['chinh-thuc', 'cham-writing'] },
+  { name: 'IELTS Online Tests', url: 'https://ieltsonlinetests.com', desc: 'Thi thử real-time, chấm tự động, phân tích điểm mạnh/yếu.', tags: ['de-sat-that', 'tong-hop'] },
+  { name: 'STUDY4', url: 'https://study4.com', desc: 'Kho đề Cambridge 7-18, Actual Test, IELTS Trainer... giải thích đáp án tiếng Việt chi tiết.', tags: ['de-sat-that', 'tong-hop', 'free'] },
+  { name: 'DOL Tự học', url: 'https://dolenglish.vn', desc: 'Kho đề lớn, có cộng đồng hỗ trợ (group Facebook riêng).', tags: ['tong-hop', 'free'] },
+  { name: 'IELTS-fighter', url: 'https://ielts-fighter.com', desc: 'Đề thi thử tự xây dựng bởi trung tâm.', tags: ['tong-hop'] },
+  { name: 'IELTS Buddy', url: 'https://ieltsbuddy.com', desc: 'Đầy đủ tính năng học + test, tài liệu chọn lọc.', tags: ['nuoc-ngoai'] },
+  { name: 'IELTS Tutorials', url: 'https://ielts-tutorials.com', desc: '20 bài test đủ 4 kỹ năng, miễn phí.', tags: ['nuoc-ngoai', 'free'] },
+  { name: 'IELTS Mentor', url: 'https://ielts-mentor.com', desc: 'Kho đề mẫu khổng lồ, chia theo kỹ năng rõ ràng.', tags: ['tong-hop', 'free'] },
+  { name: 'IELTS-up', url: 'https://ielts-up.com', desc: 'Luyện 4 kỹ năng, có dịch vụ chữa Writing trả phí.', tags: ['tong-hop', 'cham-writing'] },
+  { name: 'IELTS Liz', url: 'https://ieltsliz.com', desc: 'Tài liệu miễn phí + mẹo thi.', tags: ['free'] },
+  { name: 'IELTS Advantage', url: 'https://ieltsadvantage.com', desc: 'Hướng dẫn Speaking từng bước chi tiết.', tags: ['luyen-speaking'] },
+  { name: 'TED-Ed', url: 'https://ed.ted.com', desc: 'Luyện Listening qua video học thuật, mở rộng từ vựng.', tags: ['luyen-listening'] },
+  { name: 'YouPass', url: 'https://youpass.vn', desc: 'AI chấm Writing/Speaking 24/7, kho đề lớn (AI đôi khi chấm thoáng hơn thực tế 0.5-1 band).', tags: ['cham-writing', 'cham-speaking', 'ai'] },
+  { name: 'RealIELTSExam', url: 'https://realieltsexam.com', desc: 'Mô phỏng giao diện thi thật trên máy (CD IELTS) rất sát, đề gốc từ ngân hàng đề chính thức.', tags: ['de-sat-that'] },
+  { name: 'JumpInto', url: 'https://jumpinto.app', desc: 'App mobile, luyện đủ 4 kỹ năng, AI chấm tức thì, có shadowing luyện phát âm.', tags: ['ai', 'luyen-speaking'] },
+  { name: 'AI4IELTS', url: 'https://ai4ielts.com/app/speaking', desc: 'Chấm Part 1-2-3 Speaking miễn phí, phản hồi chuẩn British Council.', tags: ['ai', 'cham-speaking', 'free'] },
+  { name: 'KTDC AI', url: 'https://ai.ktdcgroup.vn', desc: 'Miễn phí, mô phỏng bài thi thật + trò chuyện với AI coach.', tags: ['ai', 'cham-speaking', 'free'] },
+  { name: 'ELSA Speak', url: 'https://elsaspeak.com', desc: 'App luyện phát âm, ngữ điệu tự nhiên.', tags: ['luyen-speaking'] },
+];
+
+
+// ============================================================
+//  IELTS HUB — Cheat Sheets, Web Directory, Band Tracker,
+//  Paraphrase Notebook, Speaking Cue Card, Writing Timer
+// ============================================================
+
+// ---- Mini Markdown renderer (đủ dùng cho cheat sheet: #, **, bảng, list, >, ---) ----
+function mdToHtml(md) {
+  const lines = md.split('\n');
+  let html = '';
+  let inTable = false, tableHeader = false, inList = false;
+  lines.forEach(rawLine => {
+    let line = rawLine;
+    if (/^\s*\|(.+)\|\s*$/.test(line)) {
+      const cells = line.trim().slice(1, -1).split('|').map(c => c.trim());
+      const isSep = cells.every(c => /^:?-+:?$/.test(c));
+      if (isSep) { tableHeader = true; return; }
+      if (!inTable) { html += '<table class="md-table">'; inTable = true; }
+      const tag = tableHeader ? 'th' : 'td';
+      html += '<tr>' + cells.map(c => '<' + tag + '>' + inlineMd(c) + '</' + tag + '>').join('') + '</tr>';
+      if (tableHeader) tableHeader = false;
+      return;
+    } else if (inTable) { html += '</table>'; inTable = false; }
+
+    if (/^\s*[-*]\s+/.test(line)) {
+      if (!inList) { html += '<ul class="md-list">'; inList = true; }
+      html += '<li>' + inlineMd(line.replace(/^\s*[-*]\s+/, '')) + '</li>';
+      return;
+    } else if (inList) { html += '</ul>'; inList = false; }
+
+    if (/^\s*>\s?/.test(line)) { html += '<blockquote class="md-quote">' + inlineMd(line.replace(/^\s*>\s?/, '')) + '</blockquote>'; return; }
+    if (/^\s*---+\s*$/.test(line)) { html += '<hr class="md-hr">'; return; }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { const lvl = h[1].length; html += '<h' + (lvl + 2) + ' class="md-h">' + inlineMd(h[2]) + '</h' + (lvl + 2) + '>'; return; }
+    if (line.trim() === '') { html += ''; return; }
+    html += '<p class="md-p">' + inlineMd(line) + '</p>';
+  });
+  if (inTable) html += '</table>';
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function inlineMd(text) {
+  let t = sanitizeInput(text);
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+  return t;
+}
+
+// ---- IELTS state additions loaded lazily ----
+function loadIeltsData() {
+  try { state.ieltsBandLog = JSON.parse(localStorage.getItem('cpHub_ieltsBandLog') || '[]'); } catch { state.ieltsBandLog = []; }
+  try { state.paraphraseNotes = JSON.parse(localStorage.getItem('cpHub_paraphraseNotes') || '[]'); } catch { state.paraphraseNotes = []; }
+}
+function saveIeltsBandLog() { localStorage.setItem('cpHub_ieltsBandLog', JSON.stringify(state.ieltsBandLog)); queueDiskSave(); }
+function saveParaphraseNotes() { localStorage.setItem('cpHub_paraphraseNotes', JSON.stringify(state.paraphraseNotes)); queueDiskSave(); }
+
+// ---- Sub-tab switching within IELTS page ----
+function switchIeltsTab(tabName) {
+  $$('.ielts-tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.ieltsTab === tabName));
+  $$('.ielts-tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === 'ielts-tab-' + tabName));
+}
+
+// ---- Cheat Sheet Viewer ----
+let ieltsCurrentSkill = 'listening';
+function renderIeltsCheatsheet() {
+  const container = $('ielts-cheatsheet-content');
+  if (!container) return;
+  const query = ($('ielts-cheatsheet-search')?.value || '').trim().toLowerCase();
+  const md = IELTS_CHEATSHEETS[ieltsCurrentSkill] || '';
+  container.innerHTML = mdToHtml(md);
+  if (query) {
+    // Highlight matches + scroll to first
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    let firstMatch = null;
+    const toWrap = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.textContent.toLowerCase().includes(query)) toWrap.push(node);
+    }
+    toWrap.forEach(n => {
+      const idx = n.textContent.toLowerCase().indexOf(query);
+      const span = document.createElement('span');
+      span.innerHTML = sanitizeInput(n.textContent.slice(0, idx)) + '<mark class="md-highlight">' + sanitizeInput(n.textContent.slice(idx, idx + query.length)) + '</mark>' + sanitizeInput(n.textContent.slice(idx + query.length));
+      n.replaceWith(span);
+      if (!firstMatch) firstMatch = span;
+    });
+    if (firstMatch) firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function selectIeltsSkill(skill) {
+  ieltsCurrentSkill = skill;
+  $$('.ielts-skill-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.skill === skill));
+  renderIeltsCheatsheet();
+}
+
+// ---- Web Directory ----
+function renderIeltsWebDirectory(filterTag) {
+  const container = $('ielts-webdir-grid');
+  if (!container) return;
+  const list = filterTag && filterTag !== 'all' ? IELTS_WEB_DIRECTORY.filter(w => w.tags.includes(filterTag)) : IELTS_WEB_DIRECTORY;
+  container.innerHTML = list.map(w => `
+    <a href="${w.url}" target="_blank" rel="noopener noreferrer" class="webdir-card">
+      <div class="webdir-name">${sanitizeInput(w.name)}</div>
+      <div class="webdir-desc">${sanitizeInput(w.desc)}</div>
+      <div class="webdir-tags">${w.tags.map(t => '<span class="webdir-tag">' + sanitizeInput(t) + '</span>').join('')}</div>
+    </a>`).join('');
+}
+
+// ---- Band Tracker ----
+function addBandResult() {
+  const l = parseFloat($('band-listening')?.value);
+  const r = parseFloat($('band-reading')?.value);
+  const s = parseFloat($('band-speaking')?.value);
+  const w = parseFloat($('band-writing')?.value);
+  if ([l, r, s, w].some(v => isNaN(v))) { showToast('Vui lòng nhập đủ 4 band điểm', 'error'); return; }
+  state.ieltsBandLog.push({ ts: Date.now(), listening: l, reading: r, speaking: s, writing: w });
+  state.ieltsBandLog.sort((a, b) => a.ts - b.ts);
+  saveIeltsBandLog();
+  ['band-listening', 'band-reading', 'band-speaking', 'band-writing'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+  renderBandTracker();
+  showToast('Đã lưu kết quả mock test!', 'success');
+}
+
+function renderBandTracker() {
+  const container = $('band-chart-container');
+  const currentEl = $('band-current-value');
+  if (!container) return;
+  const log = state.ieltsBandLog;
+  if (log.length === 0) {
+    container.innerHTML = '<p class="bookmarks-empty">Chưa có kết quả nào — nhập band điểm mock test đầu tiên nhé.</p>';
+    if (currentEl) currentEl.innerHTML = '';
+    return;
+  }
+  const last = log[log.length - 1];
+  const overall = Math.round(((last.listening + last.reading + last.speaking + last.writing) / 4) * 2) / 2;
+  if (currentEl) {
+    currentEl.innerHTML = 'Overall gần nhất: <strong style="color:var(--accent-cyan)">' + overall.toFixed(1) + '</strong>' +
+      ' &nbsp;•&nbsp; L: ' + last.listening + ' R: ' + last.reading + ' S: ' + last.speaking + ' W: ' + last.writing;
+  }
+
+  const w = 640, h = 220, pad = 34;
+  const allVals = log.flatMap(e => [e.listening, e.reading, e.speaking, e.writing]);
+  const minV = Math.min(...allVals) - 0.5, maxV = Math.max(...allVals) + 0.5;
+  const skills = [
+    { key: 'listening', color: '#00d4ff', label: 'Listening' },
+    { key: 'reading', color: '#10b981', label: 'Reading' },
+    { key: 'speaking', color: '#f59e0b', label: 'Speaking' },
+    { key: 'writing', color: '#ec4899', label: 'Writing' },
+  ];
+  const linesSvg = skills.map(sk => {
+    const points = log.map((e, i) => {
+      const x = pad + (log.length === 1 ? 0 : (i / (log.length - 1)) * (w - pad * 2));
+      const y = h - pad - ((e[sk.key] - minV) / (maxV - minV)) * (h - pad * 2);
+      return x + ',' + y;
+    }).join(' ');
+    return '<polyline points="' + points + '" fill="none" stroke="' + sk.color + '" stroke-width="2.5" />';
+  }).join('');
+  const legend = skills.map(sk => '<span class="band-legend-item"><span class="dot" style="background:' + sk.color + '"></span>' + sk.label + '</span>').join('');
+  container.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" class="rating-chart-svg">' + linesSvg + '</svg><div class="band-legend">' + legend + '</div>';
+}
+
+// ---- Paraphrase Notebook ----
+function addParaphraseNote() {
+  const orig = $('paraphrase-original')?.value.trim();
+  const para = $('paraphrase-alt')?.value.trim();
+  if (!orig || !para) { showToast('Vui lòng nhập cả 2 vế (bài gốc ↔ câu hỏi)', 'error'); return; }
+  state.paraphraseNotes.unshift({ id: generateId(), original: orig, paraphrase: para, ts: Date.now() });
+  saveParaphraseNotes();
+  $('paraphrase-original').value = '';
+  $('paraphrase-alt').value = '';
+  renderParaphraseNotes();
+  showToast('Đã lưu cặp paraphrase!', 'success');
+}
+function deleteParaphraseNote(id) {
+  state.paraphraseNotes = state.paraphraseNotes.filter(n => n.id !== id);
+  saveParaphraseNotes();
+  renderParaphraseNotes();
+}
+function renderParaphraseNotes() {
+  const list = $('paraphrase-list');
+  if (!list) return;
+  if (state.paraphraseNotes.length === 0) {
+    list.innerHTML = '<p class="bookmarks-empty">Sổ tay trống — thêm cặp từ paraphrase đầu tiên.</p>';
+    return;
+  }
+  list.innerHTML = state.paraphraseNotes.map(n => `
+    <div class="paraphrase-item">
+      <span class="paraphrase-original">${sanitizeInput(n.original)}</span>
+      <span class="paraphrase-arrow">↔</span>
+      <span class="paraphrase-alt">${sanitizeInput(n.paraphrase)}</span>
+      <button class="btn btn-ghost btn-sm paraphrase-del-btn" data-id="${n.id}">🗑️</button>
+    </div>`).join('');
+  list.querySelectorAll('.paraphrase-del-btn').forEach(btn => {
+    btn.addEventListener('click', function() { deleteParaphraseNote(this.dataset.id); });
+  });
+}
+
+// ---- Speaking Cue Card Generator ----
+const CUE_CARD_TOPICS = [
+  'Describe a person who has influenced you a lot.',
+  'Describe a place you visited that you found relaxing.',
+  'Describe a piece of technology you find useful.',
+  'Describe a book you recently read.',
+  'Describe a skill you would like to learn.',
+  'Describe a time you helped someone.',
+  'Describe a memorable trip you took.',
+  'Describe your favorite way to spend free time.',
+  'Describe a goal you have set for yourself.',
+  'Describe a decision that was difficult to make.',
+  'Describe a piece of art or music you like.',
+  'Describe a teacher who has influenced you.',
+];
+let cueCardTimerHandle = null;
+function randomCueCard() {
+  const topic = CUE_CARD_TOPICS[Math.floor(Math.random() * CUE_CARD_TOPICS.length)];
+  const el = $('cuecard-topic');
+  if (el) el.textContent = topic;
+  resetCueCardTimer();
+}
+function resetCueCardTimer() {
+  clearInterval(cueCardTimerHandle);
+  const timerEl = $('cuecard-timer');
+  const phaseEl = $('cuecard-phase');
+  if (phaseEl) phaseEl.textContent = 'Sẵn sàng';
+  if (timerEl) timerEl.textContent = '01:00';
+}
+function startCueCardTimer() {
+  clearInterval(cueCardTimerHandle);
+  let phase = 'prep';
+  let remaining = 60;
+  const timerEl = $('cuecard-timer');
+  const phaseEl = $('cuecard-phase');
+  if (phaseEl) phaseEl.textContent = '🕐 Chuẩn bị (1 phút)';
+  cueCardTimerHandle = setInterval(() => {
+    remaining--;
+    if (remaining < 0) {
+      if (phase === 'prep') {
+        phase = 'speak';
+        remaining = 120;
+        if (phaseEl) phaseEl.textContent = '🎤 Đang nói (2 phút)';
+        showToast('Hết giờ chuẩn bị — bắt đầu nói!', 'info');
+      } else {
+        clearInterval(cueCardTimerHandle);
+        if (phaseEl) phaseEl.textContent = '✅ Hoàn thành';
+        if (timerEl) timerEl.textContent = '00:00';
+        showToast('Hết giờ nói — xong Part 2!', 'success');
+        return;
+      }
+    }
+    if (timerEl) timerEl.textContent = formatSeconds(Math.max(0, remaining));
+  }, 1000);
+}
+
+// ---- Writing Timer ----
+let writingTimerHandle = null;
+let writingRemainingSec = 0;
+function startWritingTimer() {
+  const taskType = document.querySelector('input[name="writing-task-type"]:checked')?.value || 'task2';
+  writingRemainingSec = taskType === 'task1' ? 20 * 60 : 40 * 60;
+  clearInterval(writingTimerHandle);
+  writingTimerHandle = setInterval(() => {
+    writingRemainingSec--;
+    const timerEl = $('writing-timer');
+    if (timerEl) timerEl.textContent = formatSeconds(Math.max(0, writingRemainingSec));
+    if (writingRemainingSec <= 0) {
+      clearInterval(writingTimerHandle);
+      showToast('⏰ Hết giờ viết!', 'error');
+    }
+  }, 1000);
+  showToast('Bắt đầu đếm giờ ' + (taskType === 'task1' ? 'Task 1 (20 phút)' : 'Task 2 (40 phút)'), 'success');
+}
+function stopWritingTimer() {
+  clearInterval(writingTimerHandle);
+}
+function updateWritingWordCount() {
+  const textarea = $('writing-textarea');
+  const countEl = $('writing-word-count');
+  if (!textarea || !countEl) return;
+  const text = textarea.value.trim();
+  const words = text.length === 0 ? 0 : text.split(/\s+/).length;
+  const taskType = document.querySelector('input[name="writing-task-type"]:checked')?.value || 'task2';
+  const min = taskType === 'task1' ? 150 : 250;
+  countEl.textContent = words + ' từ (tối thiểu ' + min + ')';
+  countEl.classList.toggle('word-count-warning', words < min);
+}
+
+// ---- Init IELTS page ----
+function initIeltsPage() {
+  renderIeltsCheatsheet();
+  renderIeltsWebDirectory('all');
+  renderBandTracker();
+  renderParaphraseNotes();
+  resetCueCardTimer();
+}
+
+
+const CPHUB_LOGS_MD = "# CP Training Hub — Log tính năng\n\n_Cập nhật: v5 — 31/07/2026_\n\n---\n\n## 🔍 Problem Finder (Codeforces)\n\n- Kéo toàn bộ đề bài từ Codeforces API (`problemset.problems`), cache 30 phút trong localStorage, tự refresh mỗi 5 phút.\n- Filter theo Rating Min/Max, theo tag (chọn nhiều, chế độ \"Có bất kỳ\" / \"Có tất cả\").\n- Ô tìm kiếm theo tên/ID/tag, debounce 400ms, lưu lịch sử tìm kiếm.\n- Sort: Rating tăng/giảm, Số người giải, Mới nhất.\n- Phân trang (24 bài/trang).\n- Đánh dấu **Đã giải** (theo dõi số bài Easy ≤1400 / Medium 1500–1900 / Hard ≥2000).\n- **Bookmark** bài tập, xem riêng ở khu \"Bookmarked Problems\".\n- Nút **Random** chọn ngẫu nhiên 1 bài theo filter hiện tại (Ctrl+Shift+R).\n- Ctrl+K để focus nhanh ô tìm kiếm.\n- **[MỚI] Bài tương tự (🔗)**: xem 6 bài cùng tag + rating gần (±300) với bài đang xem, dùng luôn data đã tải (không cần gọi API thêm).\n- **[MỚI] Đồng bộ từ CF handle thật**: nhập handle → tự kéo danh sách submission `verdict=OK` để đánh dấu Đã giải + ghi log thời gian giải (phục vụ rating chart & streak).\n\n## 📅 Schedule Planner\n\n- Lịch tuần dạng day-view theo giờ (5h–24h), điều hướng tuần trước/sau, về \"Hôm nay\".\n- Thêm/sửa/xóa sự kiện: tiêu đề, giờ bắt đầu-kết thúc, danh mục (CP/IELTS/Học văn hóa/Thể dục/Nghỉ ngơi/Khác), ghi chú.\n- Đánh dấu hoàn thành từng sự kiện, hiện đường kẻ giờ hiện tại (auto update mỗi phút).\n- Sao chép lịch 1 ngày sang ngày khác, xóa toàn bộ lịch 1 ngày.\n- **Template lịch**: 3 template dựng sẵn (Ngày thường / Cuối tuần / Ngày nhẹ) + lưu ngày hiện tại thành template tùy chỉnh.\n- Tổng quan tuần: số giờ theo từng danh mục + tổng giờ.\n\n## 🏁 [MỚI] Virtual Contest Mode\n\n- Cấu hình: số bài (2–6, kiểu Div2 A→F), thời gian giới hạn (phút), rating khởi điểm bài A, bước tăng rating mỗi bài.\n- Tự random đề tăng dần độ khó từ dữ liệu Codeforces đã tải, tránh trùng bài.\n- Đồng hồ đếm ngược full màn hình, tick từng giây.\n- Đánh dấu AC từng bài trong lúc thi → ghi lại thời gian giải tính từ lúc bắt đầu.\n- Tự kết thúc khi hết giờ, hoặc bấm \"Kết thúc contest\" thủ công.\n- Kết quả cuối: số bài giải/tổng, thời gian từng bài.\n- Lưu lịch sử tất cả contest đã làm (xem ở trang Virtual Contest).\n- Bài AC trong contest tự động cộng vào \"Đã giải\" + rating log.\n\n## 📈 [MỚI] Progress (trang mới)\n\n- **Difficulty Prediction**: ước tính rating cá nhân theo thời gian (mô hình kiểu Elo đơn giản, kéo dần về rating các bài đã giải), vẽ biểu đồ đường (SVG).\n- **Streak**: số ngày liên tiếp có giải ít nhất 1 bài.\n- **Goal tracker dài hạn**: thêm mục tiêu (VD: \"Đạt rating 1800\", \"Học xong Segment Tree\"), có thể gắn rating mục tiêu (progress bar tự tính theo rating ước tính) hoặc hạn chót, tick hoàn thành thủ công.\n- **Achievement/Badge system**: 10 huy hiệu (First Blood, Giải 10/50/100 bài, Streak 7/30 ngày, giải bài ≥2000, Bookmark 20 bài, hoàn thành mục tiêu, hoàn thành 1 Virtual Contest) — tự mở khóa + toast thông báo khi đạt.\n- **Export báo cáo tuần dạng ảnh (PNG)**: tổng số bài giải trong tuần, tổng giờ luyện tập, streak, rating ước tính, số huy hiệu đạt được — vẽ bằng Canvas, tải về máy.\n\n## ⌨️ [MỚI] Command Palette\n\n- Mở bằng **Ctrl+Shift+P** (hoặc nút \"⌘ Command Palette\" ở sidebar).\n- Gõ để lọc nhanh các lệnh: chuyển trang, random bài, xóa filter, đổi theme, thêm sự kiện, mở template, export data/report, bắt đầu Virtual Contest.\n- Enter để chạy lệnh đầu tiên khớp, Esc để đóng.\n\n## 📖 [MỚI] IELTS Hub (trang mới)\n\n- **Cheat Sheet Viewer**: hiển thị đầy đủ 4 file cheat sheet (Listening/Reading/Speaking/Writing) dạng đã render markdown (bảng, heading, list...), có ô tìm kiếm — gõ từ khóa là highlight + tự cuộn tới chỗ khớp đầu tiên.\n- **Web Directory**: toàn bộ 20 web/tool ôn IELTS trong file gốc, dạng card bấm mở tab mới, filter theo nhu cầu (Đề sát thật / Chấm Writing / Chấm Speaking / Luyện Listening / Luyện Speaking / AI / Free / Chính thức).\n- **Band Tracker**: nhập kết quả mock test (4 kỹ năng), vẽ biểu đồ 4 đường màu theo thời gian, hiện Overall band gần nhất.\n- **Sổ tay Paraphrase**: lưu cặp từ \"bài gốc ↔ câu hỏi\" gặp khi làm Reading, xem lại dạng danh sách.\n- **Speaking Cue Card Generator**: random 1 trong 12 chủ đề Part 2 thường gặp, đồng hồ 1 phút chuẩn bị + 2 phút nói tự chuyển giai đoạn.\n- **Writing Timer**: chọn Task 1 (20') hoặc Task 2 (40'), đếm giờ, textarea đếm từ real-time, cảnh báo màu nếu chưa đủ từ tối thiểu (150/250).\n\n## 💾 Quản lý dữ liệu\n\n- Lưu toàn bộ trên `localStorage` của trình duyệt (bookmarks, solved, schedule, templates, solved log, goals, contest history).\n- Tùy chọn **chọn thư mục lưu trên ổ cứng** (File System Access API) — tự ghi file `cp-hub-data.json` mỗi khi có thay đổi.\n- **Export/Import** toàn bộ dữ liệu dạng file `.json` để backup/chuyển máy.\n- Giao diện sáng/tối (toggle), responsive cho mobile (sidebar dạng menu trượt).\n\n## 🪵 [MỚI] Nút \"Xem Logs\" ngay trong web\n\n- Nút **📋 Xem Logs** ở cuối sidebar (cạnh nút Command Palette) — mở modal hiển thị toàn bộ nội dung file này (`FEATURES-LOG.md`) đã render markdown đẹp, không cần mở file rời để đọc.\n- Cũng gọi được qua Command Palette (Ctrl+Shift+P → gõ \"logs\").\n- Mỗi lần có tính năng mới, file `FEATURES-LOG.md` được cập nhật và nội dung trong app cũng tự đồng bộ theo (nhúng trực tiếp vào `app.js`).\n\n---\n\n### Ghi chú kỹ thuật\n- Rating hiện tại tính bằng công thức: `est += k * (rating_bài − est)`, với `k = 0.12` nếu bài ≥ rating ước tính hiện tại, `k = 0.05` nếu thấp hơn — mô phỏng việc giải bài khó \"kéo\" rating lên nhanh hơn.\n- Similar Problems xếp hạng theo (số tag trùng nhau, giảm dần) rồi (chênh lệch rating, tăng dần).\n- Virtual Contest chọn ngẫu nhiên trong top 5 ứng viên gần rating mục tiêu nhất để tránh lặp đề giữa các lần chơi.\n";
+
+
+// ============================================================
+//  LOGS VIEWER (đọc file FEATURES-LOG.md ngay trong web)
+// ============================================================
+function openLogsModal() {
+  const modal = $('logs-modal');
+  const content = $('logs-modal-content');
+  if (!modal || !content) return;
+  content.innerHTML = mdToHtml(CPHUB_LOGS_MD);
+  modal.style.display = 'flex';
+}
+function closeLogsModal() {
+  const modal = $('logs-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 // ============== EVENT LISTENERS ==============
@@ -2483,6 +2841,14 @@ function initEventListeners() {
     }
   });
 
+  // Logs viewer
+  const logsBtn = $('open-logs-btn');
+  const logsModal = $('logs-modal');
+  const logsModalClose = $('logs-modal-close');
+  if (logsBtn) logsBtn.addEventListener('click', openLogsModal);
+  if (logsModalClose) logsModalClose.addEventListener('click', closeLogsModal);
+  if (logsModal) logsModal.addEventListener('click', function(e) { if (e.target === this) closeLogsModal(); });
+
   // CF handle sync
   const cfSyncBtn = $('cf-sync-btn');
   if (cfSyncBtn) cfSyncBtn.addEventListener('click', syncCfHandle);
@@ -2530,8 +2896,37 @@ function initEventListeners() {
       e.preventDefault();
       openCommandPalette();
     }
-    if (e.key === 'Escape') { closeSimilarModal(); closeCommandPalette(); }
+    if (e.key === 'Escape') { closeSimilarModal(); closeCommandPalette(); closeLogsModal(); }
   });
+
+  // ---- IELTS Hub ----
+  $$('.ielts-tab-btn').forEach(btn => btn.addEventListener('click', function() { switchIeltsTab(this.dataset.ieltsTab); }));
+  $$('.ielts-skill-btn').forEach(btn => btn.addEventListener('click', function() { selectIeltsSkill(this.dataset.skill); }));
+  const cheatSearch = $('ielts-cheatsheet-search');
+  if (cheatSearch) cheatSearch.addEventListener('input', function() {
+    clearTimeout(this._t);
+    this._t = setTimeout(renderIeltsCheatsheet, 250);
+  });
+  $$('.webdir-filter-btn').forEach(btn => btn.addEventListener('click', function() {
+    $$('.webdir-filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    renderIeltsWebDirectory(this.dataset.tag);
+  }));
+  const bandAddBtn = $('band-add-btn');
+  if (bandAddBtn) bandAddBtn.addEventListener('click', addBandResult);
+  const paraphraseAddBtn = $('paraphrase-add-btn');
+  if (paraphraseAddBtn) paraphraseAddBtn.addEventListener('click', addParaphraseNote);
+  const cuecardRandomBtn = $('cuecard-random-btn');
+  const cuecardStartBtn = $('cuecard-start-btn');
+  if (cuecardRandomBtn) cuecardRandomBtn.addEventListener('click', randomCueCard);
+  if (cuecardStartBtn) cuecardStartBtn.addEventListener('click', startCueCardTimer);
+  const writingStartBtn = $('writing-start-btn');
+  const writingStopBtn = $('writing-stop-btn');
+  const writingTextarea = $('writing-textarea');
+  if (writingStartBtn) writingStartBtn.addEventListener('click', startWritingTimer);
+  if (writingStopBtn) writingStopBtn.addEventListener('click', stopWritingTimer);
+  if (writingTextarea) writingTextarea.addEventListener('input', updateWritingWordCount);
+  $$('input[name="writing-task-type"]').forEach(radio => radio.addEventListener('change', updateWritingWordCount));
 
   // Export/Import buttons
   const exportBtn = $('export-data-btn');
@@ -2567,6 +2962,7 @@ function init() {
     loadSolvedLog();
     loadGoals();
     loadContestHistory();
+    loadIeltsData();
     restoreDirectoryHandle();
     
     // Init UI

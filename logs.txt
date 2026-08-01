@@ -1,0 +1,82 @@
+# CP Training Hub — Log tính năng
+
+_Cập nhật: v5 — 31/07/2026_
+
+---
+
+## 🔍 Problem Finder (Codeforces)
+
+- Kéo toàn bộ đề bài từ Codeforces API (`problemset.problems`), cache 30 phút trong localStorage, tự refresh mỗi 5 phút.
+- Filter theo Rating Min/Max, theo tag (chọn nhiều, chế độ "Có bất kỳ" / "Có tất cả").
+- Ô tìm kiếm theo tên/ID/tag, debounce 400ms, lưu lịch sử tìm kiếm.
+- Sort: Rating tăng/giảm, Số người giải, Mới nhất.
+- Phân trang (24 bài/trang).
+- Đánh dấu **Đã giải** (theo dõi số bài Easy ≤1400 / Medium 1500–1900 / Hard ≥2000).
+- **Bookmark** bài tập, xem riêng ở khu "Bookmarked Problems".
+- Nút **Random** chọn ngẫu nhiên 1 bài theo filter hiện tại (Ctrl+Shift+R).
+- Ctrl+K để focus nhanh ô tìm kiếm.
+- **[MỚI] Bài tương tự (🔗)**: xem 6 bài cùng tag + rating gần (±300) với bài đang xem, dùng luôn data đã tải (không cần gọi API thêm).
+- **[MỚI] Đồng bộ từ CF handle thật**: nhập handle → tự kéo danh sách submission `verdict=OK` để đánh dấu Đã giải + ghi log thời gian giải (phục vụ rating chart & streak).
+
+## 📅 Schedule Planner
+
+- Lịch tuần dạng day-view theo giờ (5h–24h), điều hướng tuần trước/sau, về "Hôm nay".
+- Thêm/sửa/xóa sự kiện: tiêu đề, giờ bắt đầu-kết thúc, danh mục (CP/IELTS/Học văn hóa/Thể dục/Nghỉ ngơi/Khác), ghi chú.
+- Đánh dấu hoàn thành từng sự kiện, hiện đường kẻ giờ hiện tại (auto update mỗi phút).
+- Sao chép lịch 1 ngày sang ngày khác, xóa toàn bộ lịch 1 ngày.
+- **Template lịch**: 3 template dựng sẵn (Ngày thường / Cuối tuần / Ngày nhẹ) + lưu ngày hiện tại thành template tùy chỉnh.
+- Tổng quan tuần: số giờ theo từng danh mục + tổng giờ.
+
+## 🏁 [MỚI] Virtual Contest Mode
+
+- Cấu hình: số bài (2–6, kiểu Div2 A→F), thời gian giới hạn (phút), rating khởi điểm bài A, bước tăng rating mỗi bài.
+- Tự random đề tăng dần độ khó từ dữ liệu Codeforces đã tải, tránh trùng bài.
+- Đồng hồ đếm ngược full màn hình, tick từng giây.
+- Đánh dấu AC từng bài trong lúc thi → ghi lại thời gian giải tính từ lúc bắt đầu.
+- Tự kết thúc khi hết giờ, hoặc bấm "Kết thúc contest" thủ công.
+- Kết quả cuối: số bài giải/tổng, thời gian từng bài.
+- Lưu lịch sử tất cả contest đã làm (xem ở trang Virtual Contest).
+- Bài AC trong contest tự động cộng vào "Đã giải" + rating log.
+
+## 📈 [MỚI] Progress (trang mới)
+
+- **Difficulty Prediction**: ước tính rating cá nhân theo thời gian (mô hình kiểu Elo đơn giản, kéo dần về rating các bài đã giải), vẽ biểu đồ đường (SVG).
+- **Streak**: số ngày liên tiếp có giải ít nhất 1 bài.
+- **Goal tracker dài hạn**: thêm mục tiêu (VD: "Đạt rating 1800", "Học xong Segment Tree"), có thể gắn rating mục tiêu (progress bar tự tính theo rating ước tính) hoặc hạn chót, tick hoàn thành thủ công.
+- **Achievement/Badge system**: 10 huy hiệu (First Blood, Giải 10/50/100 bài, Streak 7/30 ngày, giải bài ≥2000, Bookmark 20 bài, hoàn thành mục tiêu, hoàn thành 1 Virtual Contest) — tự mở khóa + toast thông báo khi đạt.
+- **Export báo cáo tuần dạng ảnh (PNG)**: tổng số bài giải trong tuần, tổng giờ luyện tập, streak, rating ước tính, số huy hiệu đạt được — vẽ bằng Canvas, tải về máy.
+
+## ⌨️ [MỚI] Command Palette
+
+- Mở bằng **Ctrl+Shift+P** (hoặc nút "⌘ Command Palette" ở sidebar).
+- Gõ để lọc nhanh các lệnh: chuyển trang, random bài, xóa filter, đổi theme, thêm sự kiện, mở template, export data/report, bắt đầu Virtual Contest.
+- Enter để chạy lệnh đầu tiên khớp, Esc để đóng.
+
+## 📖 [MỚI] IELTS Hub (trang mới)
+
+- **Cheat Sheet Viewer**: hiển thị đầy đủ 4 file cheat sheet (Listening/Reading/Speaking/Writing) dạng đã render markdown (bảng, heading, list...), có ô tìm kiếm — gõ từ khóa là highlight + tự cuộn tới chỗ khớp đầu tiên.
+- **Web Directory**: toàn bộ 20 web/tool ôn IELTS trong file gốc, dạng card bấm mở tab mới, filter theo nhu cầu (Đề sát thật / Chấm Writing / Chấm Speaking / Luyện Listening / Luyện Speaking / AI / Free / Chính thức).
+- **Band Tracker**: nhập kết quả mock test (4 kỹ năng), vẽ biểu đồ 4 đường màu theo thời gian, hiện Overall band gần nhất.
+- **Sổ tay Paraphrase**: lưu cặp từ "bài gốc ↔ câu hỏi" gặp khi làm Reading, xem lại dạng danh sách.
+- **Speaking Cue Card Generator**: random 1 trong 12 chủ đề Part 2 thường gặp, đồng hồ 1 phút chuẩn bị + 2 phút nói tự chuyển giai đoạn.
+- **Writing Timer**: chọn Task 1 (20') hoặc Task 2 (40'), đếm giờ, textarea đếm từ real-time, cảnh báo màu nếu chưa đủ từ tối thiểu (150/250).
+
+## 💾 Quản lý dữ liệu
+
+- Lưu toàn bộ trên `localStorage` của trình duyệt (bookmarks, solved, schedule, templates, solved log, goals, contest history).
+- Tùy chọn **chọn thư mục lưu trên ổ cứng** (File System Access API) — tự ghi file `cp-hub-data.json` mỗi khi có thay đổi.
+- **Export/Import** toàn bộ dữ liệu dạng file `.json` để backup/chuyển máy.
+- Giao diện sáng/tối (toggle), responsive cho mobile (sidebar dạng menu trượt).
+
+## 🪵 [MỚI] Nút "Xem Logs" ngay trong web
+
+- Nút **📋 Xem Logs** ở cuối sidebar (cạnh nút Command Palette) — mở modal hiển thị toàn bộ nội dung file này (`FEATURES-LOG.md`) đã render markdown đẹp, không cần mở file rời để đọc.
+- Cũng gọi được qua Command Palette (Ctrl+Shift+P → gõ "logs").
+- Mỗi lần có tính năng mới, file `FEATURES-LOG.md` được cập nhật và nội dung trong app cũng tự đồng bộ theo (nhúng trực tiếp vào `app.js`).
+
+---
+
+### Ghi chú kỹ thuật
+- Rating hiện tại tính bằng công thức: `est += k * (rating_bài − est)`, với `k = 0.12` nếu bài ≥ rating ước tính hiện tại, `k = 0.05` nếu thấp hơn — mô phỏng việc giải bài khó "kéo" rating lên nhanh hơn.
+- Similar Problems xếp hạng theo (số tag trùng nhau, giảm dần) rồi (chênh lệch rating, tăng dần).
+- Virtual Contest chọn ngẫu nhiên trong top 5 ứng viên gần rating mục tiêu nhất để tránh lặp đề giữa các lần chơi.

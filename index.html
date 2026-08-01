@@ -46,9 +46,16 @@
           <span class="nav-label">Progress</span>
         </button>
       </li>
+      <li>
+        <button class="nav-btn" data-page="ielts" id="nav-ielts">
+          <span class="nav-icon">📖</span>
+          <span class="nav-label">IELTS Hub</span>
+        </button>
+      </li>
     </ul>
     <div class="sidebar-cmd-hint">
       <button class="cmd-hint-btn" id="open-cmd-palette-btn">⌘ Command Palette <span>Ctrl+Shift+P</span></button>
+      <button class="cmd-hint-btn" id="open-logs-btn">📋 Xem Logs / Changelog</button>
     </div>
     <div class="sidebar-footer">
       <div class="stats-mini" id="stats-mini">
@@ -340,6 +347,112 @@
         </div>
       </div>
     </section>
+
+    <!-- ===================== IELTS HUB PAGE ===================== -->
+    <section class="page" id="ielts-page">
+      <div class="page-header">
+        <h1>IELTS Hub</h1>
+        <p class="page-subtitle">Cheat sheet 4 kỹ năng, web directory, band tracker, sổ tay paraphrase, luyện Speaking/Writing có giờ</p>
+      </div>
+
+      <div class="ielts-tabs">
+        <button class="ielts-tab-btn active" data-ielts-tab="cheatsheet">📚 Cheat Sheet</button>
+        <button class="ielts-tab-btn" data-ielts-tab="webdir">🌐 Web Directory</button>
+        <button class="ielts-tab-btn" data-ielts-tab="band">📊 Band Tracker</button>
+        <button class="ielts-tab-btn" data-ielts-tab="paraphrase">📝 Sổ tay Paraphrase</button>
+        <button class="ielts-tab-btn" data-ielts-tab="speaking">🎤 Speaking Cue Card</button>
+        <button class="ielts-tab-btn" data-ielts-tab="writing">✍️ Writing Timer</button>
+      </div>
+
+      <!-- Cheat Sheet -->
+      <div class="ielts-tab-panel active" id="ielts-tab-cheatsheet">
+        <div class="ielts-skill-bar">
+          <button class="ielts-skill-btn active" data-skill="listening">🎧 Listening</button>
+          <button class="ielts-skill-btn" data-skill="reading">📖 Reading</button>
+          <button class="ielts-skill-btn" data-skill="speaking">🗣️ Speaking</button>
+          <button class="ielts-skill-btn" data-skill="writing">✍️ Writing</button>
+          <input type="text" id="ielts-cheatsheet-search" placeholder="🔍 Tìm trong cheat sheet...">
+        </div>
+        <div class="ielts-cheatsheet-box" id="ielts-cheatsheet-content"></div>
+      </div>
+
+      <!-- Web Directory -->
+      <div class="ielts-tab-panel" id="ielts-tab-webdir">
+        <div class="webdir-filter-bar">
+          <button class="webdir-filter-btn active" data-tag="all">Tất cả</button>
+          <button class="webdir-filter-btn" data-tag="de-sat-that">Đề sát thật</button>
+          <button class="webdir-filter-btn" data-tag="cham-writing">Chấm Writing</button>
+          <button class="webdir-filter-btn" data-tag="cham-speaking">Chấm Speaking</button>
+          <button class="webdir-filter-btn" data-tag="luyen-listening">Luyện Listening</button>
+          <button class="webdir-filter-btn" data-tag="luyen-speaking">Luyện Speaking</button>
+          <button class="webdir-filter-btn" data-tag="ai">AI</button>
+          <button class="webdir-filter-btn" data-tag="free">Free</button>
+          <button class="webdir-filter-btn" data-tag="chinh-thuc">Chính thức</button>
+        </div>
+        <div class="webdir-grid" id="ielts-webdir-grid"></div>
+      </div>
+
+      <!-- Band Tracker -->
+      <div class="ielts-tab-panel" id="ielts-tab-band">
+        <div class="progress-card">
+          <h3>📊 Nhập kết quả mock test</h3>
+          <div class="band-input-row">
+            <input type="number" id="band-listening" placeholder="Listening" min="0" max="9" step="0.5">
+            <input type="number" id="band-reading" placeholder="Reading" min="0" max="9" step="0.5">
+            <input type="number" id="band-speaking" placeholder="Speaking" min="0" max="9" step="0.5">
+            <input type="number" id="band-writing" placeholder="Writing" min="0" max="9" step="0.5">
+            <button class="btn btn-primary" id="band-add-btn">+ Lưu kết quả</button>
+          </div>
+          <div id="band-chart-container"></div>
+          <div class="rating-current" id="band-current-value"></div>
+        </div>
+      </div>
+
+      <!-- Paraphrase Notebook -->
+      <div class="ielts-tab-panel" id="ielts-tab-paraphrase">
+        <div class="progress-card">
+          <h3>📝 Sổ tay Paraphrase</h3>
+          <p class="page-subtitle" style="margin-bottom:12px;">Ghi lại cặp từ paraphrase gặp phải khi làm đề (từ trong bài ↔ từ trong câu hỏi)</p>
+          <div class="paraphrase-add-row">
+            <input type="text" id="paraphrase-original" placeholder="Từ/cụm trong bài đọc">
+            <input type="text" id="paraphrase-alt" placeholder="Từ/cụm tương ứng trong câu hỏi">
+            <button class="btn btn-primary" id="paraphrase-add-btn">+ Thêm</button>
+          </div>
+          <div class="paraphrase-list" id="paraphrase-list"></div>
+        </div>
+      </div>
+
+      <!-- Speaking Cue Card -->
+      <div class="ielts-tab-panel" id="ielts-tab-speaking">
+        <div class="progress-card">
+          <h3>🎤 Cue Card Generator (Part 2)</h3>
+          <button class="btn btn-primary" id="cuecard-random-btn">🎲 Random chủ đề</button>
+          <div class="cuecard-topic" id="cuecard-topic">Bấm "Random chủ đề" để bắt đầu</div>
+          <p class="page-subtitle">Gạch ý theo: <strong>What – When/Where – Why/How – Feeling</strong></p>
+          <div class="cuecard-timer-row">
+            <span class="cuecard-phase" id="cuecard-phase">Sẵn sàng</span>
+            <span class="contest-timer" id="cuecard-timer" style="font-size:36px;padding:0;">01:00</span>
+            <button class="btn btn-accent" id="cuecard-start-btn">▶️ Bắt đầu (1' chuẩn bị + 2' nói)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Writing Timer -->
+      <div class="ielts-tab-panel" id="ielts-tab-writing">
+        <div class="progress-card">
+          <h3>✍️ Writing Timer</h3>
+          <div class="writing-controls">
+            <label><input type="radio" name="writing-task-type" value="task1" checked> Task 1 (20 phút, ≥150 từ)</label>
+            <label><input type="radio" name="writing-task-type" value="task2"> Task 2 (40 phút, ≥250 từ)</label>
+            <span class="contest-timer" id="writing-timer" style="font-size:32px;padding:0;">00:00:00</span>
+            <button class="btn btn-primary" id="writing-start-btn">▶️ Bắt đầu</button>
+            <button class="btn btn-ghost" id="writing-stop-btn">⏸️ Dừng</button>
+          </div>
+          <textarea id="writing-textarea" class="writing-textarea" placeholder="Viết bài của bạn ở đây..." rows="14"></textarea>
+          <div class="writing-word-count" id="writing-word-count">0 từ (tối thiểu 150)</div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Add/Edit Event Modal -->
@@ -448,6 +561,17 @@
         <button class="modal-close" id="similar-modal-close">✕</button>
       </div>
       <div class="similar-list" id="similar-list"></div>
+    </div>
+  </div>
+
+  <!-- Logs / Changelog Modal -->
+  <div class="modal-overlay" id="logs-modal" style="display:none;">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2>📋 Logs / Changelog</h2>
+        <button class="modal-close" id="logs-modal-close">✕</button>
+      </div>
+      <div class="ielts-cheatsheet-box" id="logs-modal-content" style="margin:16px 24px 24px;"></div>
     </div>
   </div>
 
