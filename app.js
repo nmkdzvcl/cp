@@ -2254,6 +2254,7 @@ function getCommandList() {
     { label: '⚡ Mở Sparky (AI Companion)', run: () => { if (typeof openCompanionPanel === 'function') openCompanionPanel(); else if (window.openCompanion) window.openCompanion(); } },
     { label: '📊 Phân tích tuần với Sparky', run: () => { if (typeof companionWeeklyInsight === 'function') companionWeeklyInsight(); } },
     { label: '⚙️ Cài đặt API AI', run: () => { if (typeof openCompanionSettings === 'function') openCompanionSettings(); } },
+    { label: '🗑️ Xóa lịch sử chat Sparky', run: () => { if (typeof clearCompanionChat === 'function') clearCompanionChat(true); } },
   ];
 }
 
@@ -3078,6 +3079,22 @@ function saveCompanionSettings() {
   localStorage.setItem(COMPANION_STORAGE.model, companionState.model || '');
 }
 
+
+function clearCompanionChat(confirmFirst) {
+  if (confirmFirst !== false) {
+    if (!confirm('Xóa toàn bộ lịch sử chat với Sparky?')) return;
+  }
+  companionState.messages = [];
+  try { localStorage.removeItem(COMPANION_STORAGE.chatHistory); } catch (e) {}
+  const box = $('companion-messages');
+  if (box) box.innerHTML = '';
+  const samples = $('companion-samples');
+  if (samples) samples.style.display = 'block';
+  companionAppendMsg('assistant', 'Đã xóa lịch sử chat. Bạn hỏi lại từ đầu được rồi!');
+  showToast('Đã xóa lịch sử chat', 'success');
+  updateCompanionMood();
+}
+
 function saveCompanionChat() {
   // Keep last 40 messages only
   const trimmed = companionState.messages.slice(-40);
@@ -3707,6 +3724,9 @@ function initCompanion() {
 
   const insightBtn = $('companion-insight-btn');
   if (insightBtn) insightBtn.addEventListener('click', companionWeeklyInsight);
+
+  const clearBtn = $('companion-clear-btn');
+  if (clearBtn) clearBtn.addEventListener('click', () => clearCompanionChat(true));
 
   const proactiveClose = $('companion-proactive-close');
   if (proactiveClose) proactiveClose.addEventListener('click', hideProactiveBubble);
