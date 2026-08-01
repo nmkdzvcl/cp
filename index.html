@@ -586,6 +586,79 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- ===================== AI COMPANION (Sparky) ===================== -->
+  <div id="companion-root">
+    <div id="companion-proactive" class="companion-proactive" style="display:none;">
+      <div class="companion-proactive-text" id="companion-proactive-text"></div>
+      <button class="companion-proactive-close" id="companion-proactive-close" title="Đóng">✕</button>
+    </div>
+
+    <button id="companion-fab" class="companion-fab" title="Mở Sparky — AI Companion">
+      <span class="companion-fab-face" id="companion-fab-face">⚡</span>
+      <span class="companion-fab-badge" id="companion-fab-badge" style="display:none;">1</span>
+    </button>
+
+    <div id="companion-panel" class="companion-panel" style="display:none;">
+      <div class="companion-header">
+        <div class="companion-header-left">
+          <span class="companion-avatar" id="companion-avatar">⚡</span>
+          <div>
+            <div class="companion-name">Sparky</div>
+            <div class="companion-status" id="companion-status">Bạn đồng hành CP Hub</div>
+          </div>
+        </div>
+        <div class="companion-header-actions">
+          <button class="companion-icon-btn" id="companion-insight-btn" title="Phân tích tuần này">📊</button>
+          <button class="companion-icon-btn" id="companion-settings-btn" title="Cài đặt API">⚙️</button>
+          <button class="companion-icon-btn" id="companion-close-btn" title="Đóng">✕</button>
+        </div>
+      </div>
+
+      <div class="companion-messages" id="companion-messages"></div>
+
+      <div class="companion-samples" id="companion-samples">
+        <div class="companion-samples-title">Thử hỏi Sparky:</div>
+        <div class="companion-samples-list" id="companion-samples-list"></div>
+      </div>
+
+      <div class="companion-input-row">
+        <textarea id="companion-input" rows="1" placeholder="Hỏi gì cũng được… hoặc gõ: mai 19h học CP 2 tiếng"></textarea>
+        <button id="companion-send-btn" class="companion-send-btn" title="Gửi">➤</button>
+      </div>
+      <div class="companion-footer-hint">Enter gửi · Shift+Enter xuống dòng · data của bạn chỉ gửi khi bạn chat</div>
+    </div>
+  </div>
+
+  <!-- API Key Settings Modal -->
+  <div class="modal-overlay" id="companion-settings-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚙️ Cài đặt AI Companion</h2>
+        <button class="modal-close" id="companion-settings-close">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Nhà cung cấp API</label>
+        <div class="category-select" id="ai-provider-select">
+          <button type="button" class="cat-btn active" data-provider="groq">Groq (nhanh, free tier)</button>
+          <button type="button" class="cat-btn" data-provider="deepseek">DeepSeek</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="ai-api-key">API Key</label>
+        <input type="password" id="ai-api-key" placeholder="gsk_... hoặc sk-..." autocomplete="off">
+        <p class="page-subtitle" style="margin-top:6px;">Key chỉ lưu trên trình duyệt của bạn. Lấy key miễn phí tại console.groq.com hoặc platform.deepseek.com</p>
+      </div>
+      <div class="form-group">
+        <label for="ai-model">Model (tùy chọn)</label>
+        <input type="text" id="ai-model" placeholder="Để trống = mặc định (llama-3.3-70b / deepseek-chat)">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="companion-settings-cancel">Hủy</button>
+        <button class="btn btn-primary" id="companion-settings-save">💾 Lưu</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

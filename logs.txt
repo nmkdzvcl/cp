@@ -1,6 +1,6 @@
 # CP Training Hub — Log tính năng
 
-_Cập nhật: v5 — 31/07/2026_
+_Cập nhật: v6 — 01/08/2026_
 
 ---
 
@@ -80,3 +80,14 @@ _Cập nhật: v5 — 31/07/2026_
 - Rating hiện tại tính bằng công thức: `est += k * (rating_bài − est)`, với `k = 0.12` nếu bài ≥ rating ước tính hiện tại, `k = 0.05` nếu thấp hơn — mô phỏng việc giải bài khó "kéo" rating lên nhanh hơn.
 - Similar Problems xếp hạng theo (số tag trùng nhau, giảm dần) rồi (chênh lệch rating, tăng dần).
 - Virtual Contest chọn ngẫu nhiên trong top 5 ứng viên gần rating mục tiêu nhất để tránh lặp đề giữa các lần chơi.
+
+## 🤖 [MỚI] AI Companion — Sparky (v6)
+
+- **Floating chat** góc màn hình: hỏi gì cũng được (không giới hạn CP/IELTS). Lần mở đầu hiện mẫu câu gợi ý.
+- **Context thật**: mỗi lần chat, Sparky nhận snapshot schedule tuần này, streak, solvedLog, goals, band IELTS, contest history → trả lời có ngữ cảnh.
+- **Agent chủ động**: tự hiện bong bóng nhắc khi nghỉ ≥3 ngày, lệch giờ CP/IELTS, mục tiêu sắp hạn, lịch hôm nay trống buổi tối, mốc streak 7/14/30.
+- **Bạn đồng hành có cảm xúc**: avatar đổi mặt theo streak (🔥 hype / 🥺 buồn / ✨ vui), gắn với achievement đã có.
+- **Phân tích tuần (nút 📊)**: AI viết đoạn nhận xét kiểu người thật từ data tuần.
+- **Nhập liệu ngôn ngữ tự nhiên**: gõ "mai 19h học CP 2 tiếng" → AI parse ra event, bấm xác nhận là thêm vào lịch.
+- **API**: hỗ trợ **Groq** (mặc định, nhanh) và **DeepSeek**. Key lưu localStorage, không export ra file backup.
+- Mở chat: bấm nút ⚡ góc phải · Cài key: biểu tượng ⚙️ trong panel.
