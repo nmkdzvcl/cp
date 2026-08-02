@@ -1,6 +1,6 @@
 # CP Training Hub — Log tính năng
 
-_Cập nhật: v6 — 01/08/2026_
+_Cập nhật: v5 — 31/07/2026_
 
 ---
 
@@ -61,6 +61,25 @@ _Cập nhật: v6 — 01/08/2026_
 - **Speaking Cue Card Generator**: random 1 trong 12 chủ đề Part 2 thường gặp, đồng hồ 1 phút chuẩn bị + 2 phút nói tự chuyển giai đoạn.
 - **Writing Timer**: chọn Task 1 (20') hoặc Task 2 (40'), đếm giờ, textarea đếm từ real-time, cảnh báo màu nếu chưa đủ từ tối thiểu (150/250).
 
+## 👤 [MỚI] Multi-Profile (nhiều hồ sơ trên cùng 1 máy)
+
+- **Màn hình chọn hồ sơ** khi mở app: hiện tất cả hồ sơ đã tạo (emoji + tên), bấm vào để đăng nhập. Hồ sơ có đặt PIN sẽ hiện ô nhập PIN trước khi vào.
+- **Tạo hồ sơ mới**: đặt tên, chọn 1 trong 12 emoji đại diện, PIN bảo vệ tùy chọn (không bắt buộc).
+- **Dữ liệu tách biệt hoàn toàn theo hồ sơ**: mỗi hồ sơ có bookmark/solved/schedule/goals/badges/band IELTS/paraphrase notes/lịch sử chat AI/API key Groq riêng — không lẫn giữa các hồ sơ.
+- **Đổi hồ sơ**: nút "🔀 Đổi hồ sơ" trong sidebar — quay lại màn hình chọn hồ sơ bất cứ lúc nào (dữ liệu hồ sơ hiện tại vẫn giữ nguyên).
+- **Xóa hồ sơ**: bấm ✕ trên thẻ hồ sơ ở màn hình chọn — xóa toàn bộ dữ liệu liên quan đến hồ sơ đó, không thể hoàn tác.
+- Lưu ý: đây KHÔNG phải xác thực bảo mật thật (PIN chỉ lưu dạng thường trong trình duyệt) — chỉ để phân tách dữ liệu nhiều người dùng chung 1 máy, không dùng để bảo vệ thông tin nhạy cảm.
+
+## 🤖 AI Hub (tích hợp Groq API)
+
+- **Cài đặt**: bấm ⚙️ trong panel AI → nhập Groq API key (lưu ở `localStorage`, không gửi đi đâu ngoài Groq). Model dùng: `llama-3.3-70b-versatile`.
+- **AI Đồng hành (chat nổi 🤖 góc màn hình)**: hỏi gì cũng được, AI đọc thẳng dữ liệu hiện tại của bạn (số bài CP đã giải, streak, rating ước tính, giờ luyện tập tuần này theo từng category, band IELTS gần nhất, mục tiêu đang theo đuổi, số huy hiệu) để trả lời có ngữ cảnh thật, không chung chung.
+- **Mẫu câu gợi ý**: mỗi lần mở panel đều hiện sẵn các câu hỏi mẫu (chip bấm là gửi luôn): "Hôm nay tôi nên làm gì trước?", "Tóm tắt tuần này của tôi", "Động viên tôi một câu", "Tuần này tôi nên bù CP hay IELTS?", "Phân tích tiến bộ của tôi gần đây".
+- **Companion có "cảm xúc"**: icon nhỏ trên nút 🤖 đổi theo streak — 🔥 streak ≥7 ngày, 💪 streak ≥3, 😴 nếu nghỉ ≥3 ngày, 🙂 bình thường. Mở panel lần đầu trong phiên sẽ có lời chào phản ứng theo streak.
+- **Thêm sự kiện lịch bằng ngôn ngữ tự nhiên** (trang Schedule): gõ kiểu "mai 7h tối học CP 2 tiếng" → AI tự parse ra tiêu đề/ngày/giờ/category và thêm thẳng vào lịch.
+- **Đề xuất lịch tuần bằng AI** (nút 🤖 cạnh ô thêm nhanh): AI đọc mục tiêu + lịch sử luyện tập, đề xuất lịch 7 ngày tới cân bằng CP/IELTS/nghỉ ngơi, xem trước rồi bấm "Áp dụng" mới thêm thật vào lịch.
+- Xử lý lỗi thân thiện: chưa có key → nhắc mở cài đặt; key sai → báo rõ; bị rate limit → báo đợi thử lại.
+
 ## 💾 Quản lý dữ liệu
 
 - Lưu toàn bộ trên `localStorage` của trình duyệt (bookmarks, solved, schedule, templates, solved log, goals, contest history).
@@ -80,14 +99,3 @@ _Cập nhật: v6 — 01/08/2026_
 - Rating hiện tại tính bằng công thức: `est += k * (rating_bài − est)`, với `k = 0.12` nếu bài ≥ rating ước tính hiện tại, `k = 0.05` nếu thấp hơn — mô phỏng việc giải bài khó "kéo" rating lên nhanh hơn.
 - Similar Problems xếp hạng theo (số tag trùng nhau, giảm dần) rồi (chênh lệch rating, tăng dần).
 - Virtual Contest chọn ngẫu nhiên trong top 5 ứng viên gần rating mục tiêu nhất để tránh lặp đề giữa các lần chơi.
-
-## 🤖 [MỚI] AI Companion — Sparky (v6)
-
-- **Floating chat** góc màn hình: hỏi gì cũng được (không giới hạn CP/IELTS). Lần mở đầu hiện mẫu câu gợi ý.
-- **Context thật**: mỗi lần chat, Sparky nhận snapshot schedule tuần này, streak, solvedLog, goals, band IELTS, contest history → trả lời có ngữ cảnh.
-- **Agent chủ động**: tự hiện bong bóng nhắc khi nghỉ ≥3 ngày, lệch giờ CP/IELTS, mục tiêu sắp hạn, lịch hôm nay trống buổi tối, mốc streak 7/14/30.
-- **Bạn đồng hành có cảm xúc**: avatar đổi mặt theo streak (🔥 hype / 🥺 buồn / ✨ vui), gắn với achievement đã có.
-- **Phân tích tuần (nút 📊)**: AI viết đoạn nhận xét kiểu người thật từ data tuần.
-- **Nhập liệu ngôn ngữ tự nhiên**: gõ "mai 19h học CP 2 tiếng" → AI parse ra event, bấm xác nhận là thêm vào lịch.
-- **API**: hỗ trợ **Groq** (mặc định, nhanh) và **DeepSeek**. Key lưu localStorage, không export ra file backup.
-- Mở chat: bấm nút ⚡ góc phải · Cài key: biểu tượng ⚙️ trong panel.

@@ -12,6 +12,25 @@
 </head>
 <body>
 
+  <!-- Profile Gate (chọn/tạo hồ sơ) -->
+  <div class="profile-gate-overlay" id="profile-gate-overlay" style="display:none;">
+    <div class="profile-gate-box">
+      <div class="profile-gate-logo"><span class="logo-icon">⚡</span> CP Training Hub</div>
+      <p class="page-subtitle">Chọn hồ sơ của bạn để tiếp tục</p>
+      <div class="profile-cards-grid" id="profile-cards-grid"></div>
+
+      <div class="profile-create-box">
+        <h3>+ Tạo hồ sơ mới</h3>
+        <div class="profile-emoji-picker" id="profile-emoji-picker"></div>
+        <div class="profile-create-inputs">
+          <input type="text" id="profile-new-name" placeholder="Tên hồ sơ (VD: Minh, Lan...)" maxlength="20">
+          <input type="password" id="profile-new-pin" placeholder="PIN bảo vệ (tùy chọn, để trống nếu không cần)" maxlength="8">
+          <button class="btn btn-primary" id="profile-create-btn">Tạo hồ sơ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Sidebar Navigation -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -20,6 +39,10 @@
         <span class="logo-text">CP Hub</span>
       </div>
       <button class="theme-toggle" id="theme-toggle" title="Đổi giao diện sáng/tối">🌙</button>
+    </div>
+    <div class="profile-badge-row">
+      <span class="profile-badge" id="current-profile-badge"></span>
+      <button class="btn btn-ghost btn-sm" id="switch-profile-btn" title="Đổi hồ sơ">🔀 Đổi hồ sơ</button>
     </div>
     <ul class="nav-links">
       <li>
@@ -245,6 +268,14 @@
             <span>🗑️</span> Xóa ngày
           </button>
         </div>
+      </div>
+
+      <!-- AI Quick Add -->
+      <div class="ai-quick-add-row">
+        <span class="ai-quick-add-icon">🪄</span>
+        <input type="text" id="ai-quick-add-input" placeholder='Gõ tự nhiên: "mai 7h tối học CP 2 tiếng" — AI tự thêm vào lịch'>
+        <button class="btn btn-accent" id="ai-quick-add-btn">Thêm bằng AI</button>
+        <button class="btn btn-ghost" id="ai-suggest-week-btn">🤖 Đề xuất lịch tuần</button>
       </div>
 
       <!-- Week Header -->
@@ -583,82 +614,63 @@
     </div>
   </div>
 
-  <!-- Toast Container -->
-  <div class="toast-container" id="toast-container"></div>
+  <!-- AI Floating Widget -->
+  <button class="ai-fab" id="ai-fab-btn" title="Trợ lý AI">
+    <span id="ai-fab-icon">🤖</span>
+    <span class="ai-fab-mood" id="ai-fab-mood"></span>
+  </button>
 
-  <!-- ===================== AI COMPANION (Sparky) ===================== -->
-  <div id="companion-root">
-    <div id="companion-proactive" class="companion-proactive" style="display:none;">
-      <div class="companion-proactive-text" id="companion-proactive-text"></div>
-      <button class="companion-proactive-close" id="companion-proactive-close" title="Đóng">✕</button>
+  <div class="ai-panel" id="ai-panel" style="display:none;">
+    <div class="ai-panel-header">
+      <span>🤖 AI Đồng hành</span>
+      <div class="ai-panel-header-actions">
+        <button class="ai-icon-btn" id="ai-settings-btn" title="Cài đặt API key">⚙️</button>
+        <button class="ai-icon-btn" id="ai-panel-close-btn" title="Đóng">✕</button>
+      </div>
     </div>
-
-    <button id="companion-fab" class="companion-fab" title="Mở Sparky — AI Companion">
-      <span class="companion-fab-face" id="companion-fab-face">⚡</span>
-      <span class="companion-fab-badge" id="companion-fab-badge" style="display:none;">1</span>
-    </button>
-
-    <div id="companion-panel" class="companion-panel" style="display:none;">
-      <div class="companion-header">
-        <div class="companion-header-left">
-          <span class="companion-avatar" id="companion-avatar">⚡</span>
-          <div>
-            <div class="companion-name">Sparky</div>
-            <div class="companion-status" id="companion-status">Bạn đồng hành CP Hub</div>
-          </div>
-        </div>
-        <div class="companion-header-actions">
-          <button class="companion-icon-btn" id="companion-insight-btn" title="Phân tích tuần này">📊</button>
-          <button class="companion-icon-btn" id="companion-clear-btn" title="Xóa lịch sử chat">🗑️</button>
-          <button class="companion-icon-btn" id="companion-settings-btn" title="Cài đặt API">⚙️</button>
-          <button class="companion-icon-btn" id="companion-close-btn" title="Đóng">✕</button>
-        </div>
-      </div>
-
-      <div class="companion-messages" id="companion-messages"></div>
-
-      <div class="companion-samples" id="companion-samples">
-        <div class="companion-samples-title">Thử hỏi Sparky:</div>
-        <div class="companion-samples-list" id="companion-samples-list"></div>
-      </div>
-
-      <div class="companion-input-row">
-        <textarea id="companion-input" rows="1" placeholder="Hỏi gì cũng được… hoặc gõ: mai 19h học CP 2 tiếng"></textarea>
-        <button id="companion-send-btn" class="companion-send-btn" title="Gửi">➤</button>
-      </div>
-      <div class="companion-footer-hint">Enter gửi · Shift+Enter xuống dòng · data của bạn chỉ gửi khi bạn chat</div>
+    <div class="ai-messages" id="ai-messages"></div>
+    <div class="ai-chips" id="ai-chips"></div>
+    <div class="ai-input-row">
+      <input type="text" id="ai-input" placeholder="Hỏi gì cũng được...">
+      <button class="btn btn-primary" id="ai-send-btn">Gửi</button>
     </div>
   </div>
 
-  <!-- API Key Settings Modal -->
-  <div class="modal-overlay" id="companion-settings-modal" style="display:none;">
+  <!-- AI Settings Modal -->
+  <div class="modal-overlay" id="ai-settings-modal" style="display:none;">
     <div class="modal">
       <div class="modal-header">
-        <h2>⚙️ Cài đặt AI Companion</h2>
-        <button class="modal-close" id="companion-settings-close">✕</button>
+        <h2>⚙️ Cài đặt AI (Groq)</h2>
+        <button class="modal-close" id="ai-settings-close">✕</button>
       </div>
-      <div class="form-group">
-        <label>Nhà cung cấp API</label>
-        <div class="category-select" id="ai-provider-select">
-          <button type="button" class="cat-btn active" data-provider="groq">Groq (nhanh, free tier)</button>
-          <button type="button" class="cat-btn" data-provider="deepseek">DeepSeek</button>
+      <div class="ai-settings-body">
+        <p class="page-subtitle">Key chỉ lưu trên trình duyệt của bạn (localStorage), không gửi đi đâu khác ngoài Groq.</p>
+        <input type="password" id="ai-groq-key-input" placeholder="Nhập Groq API key (gsk_...)">
+        <div class="form-actions">
+          <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">Lấy API key</a>
+          <button class="btn btn-primary" id="ai-groq-key-save-btn">Lưu key</button>
         </div>
-      </div>
-      <div class="form-group">
-        <label for="ai-api-key">API Key</label>
-        <input type="password" id="ai-api-key" placeholder="gsk_... hoặc sk-..." autocomplete="off">
-        <p class="page-subtitle" style="margin-top:6px;">Key chỉ lưu trên trình duyệt của bạn. Lấy key miễn phí tại console.groq.com hoặc platform.deepseek.com</p>
-      </div>
-      <div class="form-group">
-        <label for="ai-model">Model (tùy chọn)</label>
-        <input type="text" id="ai-model" placeholder="Để trống = mặc định (llama-3.3-70b / deepseek-chat)">
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" id="companion-settings-cancel">Hủy</button>
-        <button class="btn btn-primary" id="companion-settings-save">💾 Lưu</button>
       </div>
     </div>
   </div>
+
+  <!-- AI Weekly Suggestion Modal -->
+  <div class="modal-overlay" id="ai-suggest-modal" style="display:none;">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2>🤖 Đề xuất lịch tuần</h2>
+        <button class="modal-close" id="ai-suggest-close">✕</button>
+      </div>
+      <div class="ai-suggest-body" id="ai-suggest-body"></div>
+      <div class="form-actions" style="padding:0 24px 20px;">
+        <button class="btn btn-ghost" id="ai-suggest-close-btn">Đóng</button>
+        <button class="btn btn-primary" id="ai-suggest-apply-btn" style="display:none;">✨ Áp dụng vào lịch tuần này</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
 
   <script src="app.js"></script>
 </body>
